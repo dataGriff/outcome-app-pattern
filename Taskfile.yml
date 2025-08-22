@@ -19,3 +19,8 @@ tasks:
   ci: 
     desc: Run all continuous integration tasks
     deps: [lint:all]
+
+  test:
+    desc: Run all Python tests
+    cmds:
+      - PYTHONPATH=. pytest behaviour/tests

@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  behaviour-service:
+    build:
+      context: ./behaviour
+    container_name: behaviour-service
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
