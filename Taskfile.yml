@@ -12,11 +12,15 @@ tasks:
 
   lint:asyncapi:
     desc: Lint the AsyncAPI contract (requires asyncapi CLI)
+    sources:
+      - contracts/api/behaviour-service.asyncapi.yaml
     cmds:
       - npx -y @asyncapi/cli@latest validate contracts/api/behaviour-service.asyncapi.yaml
 
   lint:datacontract:
     desc: Lint the data contract (requires datacontract CLI)
+    sources:
+      - contracts/data/data-product.contract.yaml
     cmds:
       - python3 -m pip install 'datacontract-cli' && datacontract lint contracts/data/data-product.contract.yaml
 
@@ -26,11 +30,18 @@ tasks:
 
   test:unit:
     desc: Run all Python tests
+    sources: 
+      - behaviour/tests/unit
+      - behaviour/src
     cmds:
       - PYTHONPATH=. pytest behaviour/tests/unit
 
   test:integration:
     desc: Run all Python tests
+    sources: 
+      - behaviour/tests/integration
+      - behaviour/src
+      - behaviour/docker-compose.yml
     cmds:
       - docker compose up --build contract-test
 
@@ -47,4 +58,4 @@ tasks:
 
   ci: 
     desc: Run all continuous integration tasks
-    deps: [lint:all]
+    deps: [lint:all, test:unit, test:integration]
