@@ -7,6 +7,8 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
+    environment:
+      - NATS_URL=nats://event-hub:4222
 
   event-hub:
     image: nats:2.10-alpine

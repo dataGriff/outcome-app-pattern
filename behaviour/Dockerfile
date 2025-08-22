@@ -2,9 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY behaviour/src /app
+COPY src /app
 
-RUN pip install --no-cache-dir fastapi uvicorn
+RUN pip install --no-cache-dir fastapi pytest uvicorn nats-py  cloudevents
 
 EXPOSE 8000
 

@@ -3,11 +3,9 @@ from pydantic import BaseModel
 from enum import Enum
 from datetime import datetime
 import random
-import asyncio
 import uuid
 
 from nats.aio.client import Client as NATS
-from cloudevents.http import CloudEvent
 import os
 
 app = FastAPI()
@@ -32,16 +30,18 @@ async def publish_cloudevent(event: ColourEvent):
         "time": event.timestamp.isoformat(),
     }
     data = {"colour": event.colour, "timestamp": event.timestamp.isoformat()}
-    ce = CloudEvent(attributes, data)
-    headers, body = ce.MarshalJson()
+    # ce = CloudEvent(attributes, data)  # No longer needed
+    # Serialize CloudEvent to JSON
+    import json
+    body = json.dumps({**attributes, **data}).encode("utf-8")
     # Publish to NATS subject 'colour.generated'
     await nc.publish("colour.generated", body)
     await nc.drain()
 
 @app.post("/generate-colour", response_model=ColourEvent)
-def generate_colour():
+async def generate_colour():
     colour = random.choice(list(Colour))
     event = ColourEvent(colour=colour, timestamp=datetime.utcnow())
     # Publish CloudEvent asynchronously
-    asyncio.create_task(publish_cloudevent(event))
+    await publish_cloudevent(event)
     return event
