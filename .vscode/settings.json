@@ -3,6 +3,7 @@
         "arduino",
         "Asyncapi",
         "cloudevent",
+        "deltalake",
         "servicelevels",
         "specversion",
         "taskfile"

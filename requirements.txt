@@ -5,3 +5,5 @@ nats-py
 cloudevents
 pyyaml
 httpx
+deltalake 
+s3fs

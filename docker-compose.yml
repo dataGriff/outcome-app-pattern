@@ -1,3 +1,4 @@
+
 version: '3.8'
 services:
 
@@ -55,6 +56,22 @@ services:
         mc alias set myminio http://minio:9000 minioadmin minioadmin &&
         mc mb -p myminio/mybucket || true;
       '
+
+  data-streamer:
+    build:
+      context: ./data
+    container_name: data-streamer
+    depends_on:
+      - event-hub
+      - minio
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      NATS_URL: nats://event-hub:4222
+      S3_ENDPOINT: http://minio:9000
+      BUCKET: mybucket
+    restart: unless-stopped
 
 volumes:
   minio_data:
