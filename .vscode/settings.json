@@ -2,6 +2,7 @@
     "cSpell.words": [
         "arduino",
         "Asyncapi",
+        "cloudevent",
         "servicelevels",
         "specversion",
         "taskfile"

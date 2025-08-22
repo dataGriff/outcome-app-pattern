@@ -6,6 +6,7 @@ import random
 import uuid
 
 from nats.aio.client import Client as NATS
+from cloudevents.http import CloudEvent, to_structured
 import os
 
 app = FastAPI()
@@ -30,10 +31,8 @@ async def publish_cloudevent(event: ColourEvent):
         "time": event.timestamp.isoformat(),
     }
     data = {"colour": event.colour, "timestamp": event.timestamp.isoformat()}
-    # ce = CloudEvent(attributes, data)  # No longer needed
-    # Serialize CloudEvent to JSON
-    import json
-    body = json.dumps({**attributes, **data}).encode("utf-8")
+    ce = CloudEvent(attributes, data)
+    headers, body = to_structured(ce)
     # Publish to NATS subject 'colour.generated'
     await nc.publish("colour.generated", body)
     await nc.drain()
