@@ -1,3 +1,5 @@
 fastapi
 pytest
 uvicorn
+nats-py 
+cloudevents

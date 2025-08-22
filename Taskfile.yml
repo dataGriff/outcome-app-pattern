@@ -16,10 +16,6 @@ tasks:
     desc: Lint both the AsyncAPI and data contracts
     deps: [lint:asyncapi, lint:datacontract]
 
-  ci: 
-    desc: Run all continuous integration tasks
-    deps: [lint:all]
-
   test:
     desc: Run all Python tests
     cmds:
@@ -35,3 +31,9 @@ tasks:
     desc: Perform a simple POST request to the /generate-colour endpoint
     cmds:
       - curl -X POST http://localhost:8000/generate-colour
+
+  ci: 
+    desc: Run all continuous integration tasks
+    deps: [lint:all]
+
+ 

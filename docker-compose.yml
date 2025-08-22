@@ -7,3 +7,12 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
+
+  event-hub:
+    image: nats:2.10-alpine
+    container_name: event-hub
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    restart: unless-stopped
+    command: ["-js"]
