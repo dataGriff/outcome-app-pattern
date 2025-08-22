@@ -24,10 +24,15 @@ tasks:
     desc: Lint both the AsyncAPI and data contracts
     deps: [lint:asyncapi, lint:datacontract]
 
-  test:
+  test:unit:
     desc: Run all Python tests
     cmds:
-      - PYTHONPATH=. pytest behaviour/tests
+      - PYTHONPATH=. pytest behaviour/tests/unit
+
+  test:integration:
+    desc: Run all Python tests
+    cmds:
+      - docker compose up --build contract-test
 
   run:api:
     desc: Run the FastAPI behaviour service locally

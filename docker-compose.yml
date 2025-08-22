@@ -10,7 +10,7 @@ services:
       - behaviour-service
       - event-hub
     command: >
-      sh -c "pip install -r requirements.txt && pip install pyyaml jsonschema nats-py requests && python3 behaviour/tests/test_event_contract.py"
+      sh -c "pip install -r requirements.txt && pip install pyyaml jsonschema nats-py requests && python3 behaviour/tests/integration/test_event_contract.py"
   
   behaviour-service:
     build:
