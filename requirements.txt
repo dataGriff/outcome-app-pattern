@@ -4,3 +4,4 @@ uvicorn
 nats-py 
 cloudevents
 pyyaml
+httpx
