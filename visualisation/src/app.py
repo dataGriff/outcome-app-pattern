@@ -37,12 +37,12 @@ def load_events():
         return pd.DataFrame()
 
 def main():
-    if 'last_refresh' not in st.session_state:
-        st.session_state['last_refresh'] = time.time()
-    if time.time() - st.session_state['last_refresh'] > 5:
-        st.session_state['last_refresh'] = time.time()
-        st.rerun()
+
     st.title("MinIO Event Visualisation")
+    st.session_state['last_refresh'] = time.time()
+    # Add a manual refresh button
+    if st.button("🔄 Refresh Data"):
+        st.rerun()
 
     # Auto-refresh every 5 seconds
     df = load_events()
