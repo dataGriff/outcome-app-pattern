@@ -1,5 +1,6 @@
 version: '3.8'
 services:
+
   contract-test:
     image: python:3.12-slim
     container_name: contract-test
@@ -30,3 +31,30 @@ services:
       - "8222:8222"
     restart: unless-stopped
     command: ["-js"]
+  
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server --console-address ":9001" /data
+    volumes:
+      - minio_data:/data
+
+  minio-mc:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c '
+        sleep 5;
+        mc alias set myminio http://minio:9000 minioadmin minioadmin &&
+        mc mb -p myminio/mybucket || true;
+      '
+
+volumes:
+  minio_data:
