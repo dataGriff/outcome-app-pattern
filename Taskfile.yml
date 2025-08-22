@@ -1,0 +1,21 @@
+version: '3'
+tasks:
+  lint:asyncapi:
+    desc: Lint the AsyncAPI contract (requires asyncapi CLI)
+    sources:
+      - contracts/api/behaviour-service.asyncapi.yaml
+    cmds:
+      - npx -y @asyncapi/cli@latest validate contracts/api/behaviour-service.asyncapi.yaml
+  lint:datacontract:
+    desc: Lint the data contract (requires datacontract CLI)
+    sources:
+      - contracts/data/data-product.contract.yaml
+    cmds:
+      - python3 -m pip install 'datacontract-cli' && datacontract lint contracts/data/data-product.contract.yaml
+  lint:all:
+    desc: Lint both the AsyncAPI and data contracts
+    deps: [lint:asyncapi, lint:datacontract]
+
+  ci: 
+    desc: Run all continuous integration tasks
+    deps: [lint:all]
