@@ -30,6 +30,7 @@ Project Structure:
 
 ## Methodologies#
 
+- Always use conventional commits.
 - Contract first development.
 - Data contracts will conform to https://github.com/datacontract/datacontract-specification/blob/main/datacontract.schema.json
 - Test driven development.
