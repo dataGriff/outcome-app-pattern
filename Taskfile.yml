@@ -59,3 +59,8 @@ tasks:
   ci: 
     desc: Run all continuous integration tasks
     deps: [lint:all, test:unit, test:integration]
+
+  read:minio-events:
+    desc: Read all event JSONL files from MinIO into a pandas DataFrame
+    cmds:
+      - python3 data/read_minio_jsonl_to_df.py

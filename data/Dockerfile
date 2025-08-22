@@ -12,7 +12,7 @@ COPY ../requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install additional dependencies for delta lake
-RUN pip install --no-cache-dir nats-py deltalake pandas
+RUN pip install --no-cache-dir nats-py deltalake pandas boto3
 
 # Copy the application code
 COPY ./src/stream_nats_to_minio_delta.py ./

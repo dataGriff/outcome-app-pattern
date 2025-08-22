@@ -22,7 +22,7 @@ services:
       - "8000:8000"
     restart: unless-stopped
     environment:
-      - NATS_URL=nats://event-hub:4222
+    - NATS_URL=nats://event-hub:4222
 
   event-hub:
     image: nats:2.10-alpine
@@ -71,6 +71,22 @@ services:
       NATS_URL: nats://event-hub:4222
       S3_ENDPOINT: http://minio:9000
       BUCKET: mybucket
+    restart: unless-stopped
+
+  visualisation:
+    build:
+      context: ./visualisation
+    container_name: visualisation
+    depends_on:
+      - minio
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      S3_ENDPOINT: http://minio:9000
+      BUCKET: mybucket
+    ports:
+      - "8501:8501"
     restart: unless-stopped
 
 volumes:
