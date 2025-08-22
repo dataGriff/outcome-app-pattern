@@ -24,3 +24,14 @@ tasks:
     desc: Run all Python tests
     cmds:
       - PYTHONPATH=. pytest behaviour/tests
+
+  run:api:
+    desc: Run the FastAPI behaviour service locally
+    dir: behaviour/src
+    cmds:
+      - uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+  post:api:
+    desc: Perform a simple POST request to the /generate-colour endpoint
+    cmds:
+      - curl -X POST http://localhost:8000/generate-colour
