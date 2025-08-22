@@ -3,3 +3,4 @@ pytest
 uvicorn
 nats-py 
 cloudevents
+pyyaml
