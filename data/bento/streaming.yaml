@@ -1,0 +1,21 @@
+input:
+  nats:
+    urls: [nats://event-hub:4222]
+    subject: colour.generated
+    queue: my-queue
+
+pipeline:
+  processors: []
+
+output:
+  aws_s3:
+    bucket: mybucket
+    path: "events-json-stream/${!timestamp_unix_nano()}.jsonl"
+    endpoint: http://minio:9000
+    region: us-east-1
+    credentials:
+      id: minioadmin
+      secret: minioadmin
+    # force_path_style: true
+    content_type: application/json
+    max_in_flight: 1
