@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Outcome App — Behaviour</title>
+    <style>
+      body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:2rem}
+      button{font-size:1rem;padding:.5rem 1rem}
+      .pill{display:inline-block;padding:.5rem 1rem;border-radius:999px;background:#eee;margin-left:1rem}
+    </style>
+  </head>
+  <body>
+    <h1>Behaviour Service</h1>
+    <p>Click the button to generate a colour event from the behaviour API.</p>
+    <button id="gen">Generate colour</button>
+    <span id="result" class="pill">—</span>
+
+    <script>
+      const btn = document.getElementById('gen');
+      const res = document.getElementById('result');
+      btn.addEventListener('click', async () => {
+        res.textContent = '⏳ generating...';
+        try {
+          const r = await fetch('/api/generate-colour', { method: 'POST' });
+          if (!r.ok) throw new Error('network');
+          const j = await r.json();
+          res.textContent = j.colour + ' @ ' + (j.timestamp || '');
+        } catch (e) {
+          res.textContent = 'error';
+        }
+      });
+    </script>
+  </body>
+</html>
