@@ -59,6 +59,11 @@ product is append-only JSONL; the curated daily aggregate is columnar Parquet.
 Everything runs locally and in isolation via `docker-compose.yml`. No proprietary dependencies:
 the object store is [SeaweedFS](https://github.com/seaweedfs/seaweedfs) (Apache-2.0).
 
+**Taking the pattern elsewhere:** [docs/replication.md](docs/replication.md) is the lift-out guide
+(zones, order of work, naming rules, and the exact domain-specific touchpoints to swap);
+[docs/productionising.md](docs/productionising.md) lists what the demo deliberately omits and what
+to add before production.
+
 ## Quickstart
 
 ```bash
@@ -86,7 +91,7 @@ Streamlit counts move.
 ```bash
 task ci                 # lint all 3 contracts + unit, runtime-conformance, data-product tests
 task test:unit          # behaviour-service unit tests (hermetic)
-task test:integration   # runtime conformance: AsyncAPI events + outbox round-trip + OpenAPI (Schemathesis)
+task test:integration   # runtime conformance: AsyncAPI events + outbox round-trip + OpenAPI (Schemathesis + spec drift)
 task test:contract:data # test both data-product contracts against storage (needs the stack up)
 task summarise:daily    # run the daily summariser once
 task read:events        # read the raw data product back into a pandas DataFrame
@@ -100,8 +105,9 @@ task subscribe:broker   # tail colour.generated events on NATS
 Three authored, versioned, **verified** contracts — the API cannot drift from any of them:
 
 - **HTTP API** — `domain/contracts/api/behaviour-service.openapi.yaml` (OpenAPI). Source of truth
-  for the HTTP surface; the implementation is checked against it with Schemathesis, and the
-  experiences' typed client is generated from it (`task gen:client`).
+  for the HTTP surface; the implementation is checked against it with Schemathesis plus a
+  spec-drift test (the served `/openapi.json` must not drift from the committed contract), and the
+  mobile experience consumes it through a typed client generated from it (`task gen:client`).
 - **Events** — `domain/contracts/api/behaviour-service.asyncapi.yaml` (AsyncAPI). Emitted events
   are validated against it in the integration test.
 - **Data products** — named for the need they serve, not their shape:
@@ -116,7 +122,9 @@ Three authored, versioned, **verified** contracts — the API cannot drift from 
 
 - **At-least-once delivery.** The outbox relay marks a row published only after the NATS publish
   succeeds, holding the row lock (`FOR UPDATE SKIP LOCKED`). A crash between publish and mark can
-  redeliver — consumers should be idempotent. Run a single relay replica.
+  redeliver — consumers should be idempotent. Run a single relay replica. The relay prunes
+  published rows older than `OUTBOX_RETENTION_SECONDS` (default 1h) — the outbox is a delivery
+  log, not history.
 - **Single-node demo.** One relay, one API replica, in-process SSE fan-out. The durability story
   is Postgres (operational) and SeaweedFS (analytical), not horizontal scale.
 - **Throwaway credentials.** `platform/storage/s3.json` commits a fixed demo S3 key — safe only
