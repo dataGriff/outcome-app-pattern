@@ -34,6 +34,11 @@ services:
     environment:
       - EVENT_BROKER_URL=nats://events:4222
       - DATABASE_URL=postgresql://colour:colour@operational-store:5432/colour
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')\""]
+      interval: 3s
+      timeout: 3s
+      retries: 15
 
   operational-store:
     image: postgres:16-alpine
