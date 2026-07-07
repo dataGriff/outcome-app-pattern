@@ -8,6 +8,7 @@ rollup most apps need, made explicit.
 """
 import io
 import json
+import logging
 import os
 import time
 
@@ -19,6 +20,12 @@ BUCKET = os.getenv("BUCKET", "mybucket")
 RAW_PREFIX = "colour-operational/"
 AGG_KEY = "colour-performance/colour-performance.parquet"
 INTERVAL = int(os.getenv("SUMMARISE_INTERVAL_SECONDS", "0"))  # 0 = run once
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("summariser")
 
 
 def _client():
@@ -48,7 +55,7 @@ def summarise_once():
     s3 = _client()
     raw = _read_raw(s3)
     if raw.empty:
-        print("No raw events yet; nothing to summarise.")
+        logger.info("No raw events yet; nothing to summarise.")
         return
 
     raw["date"] = pd.to_datetime(raw["timestamp"]).dt.strftime("%Y-%m-%d")
@@ -62,7 +69,7 @@ def summarise_once():
     buf = io.BytesIO()
     agg.to_parquet(buf, index=False)
     s3.put_object(Bucket=BUCKET, Key=AGG_KEY, Body=buf.getvalue())
-    print(f"Wrote {len(agg)} aggregate row(s) to {AGG_KEY}")
+    logger.info("Wrote %d aggregate row(s) to %s", len(agg), AGG_KEY)
 
 
 def main():
@@ -72,8 +79,8 @@ def main():
     while True:
         try:
             summarise_once()
-        except Exception as e:  # keep the loop alive in the demo
-            print(f"Summarise error: {e}")
+        except Exception:  # keep the loop alive in the demo
+            logger.exception("Summarise run failed")
         time.sleep(INTERVAL)
 
 
