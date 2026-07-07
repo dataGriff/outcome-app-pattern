@@ -9,8 +9,8 @@ services:
       - .:/app
     depends_on:
       - behaviour-service
-      - event-hub
-      - postgres
+      - events
+      - operational-store
       - outbox-relay
     command: >
       sh -c "pip install -r requirements.txt &&
@@ -27,17 +27,17 @@ services:
       - "8000:8000"
     restart: unless-stopped
     depends_on:
-      postgres:
+      operational-store:
         condition: service_healthy
-      event-hub:
+      events:
         condition: service_started
     environment:
-      - NATS_URL=nats://event-hub:4222
-      - DATABASE_URL=postgresql://colour:colour@postgres:5432/colour
+      - EVENT_BROKER_URL=nats://events:4222
+      - DATABASE_URL=postgresql://colour:colour@operational-store:5432/colour
 
-  postgres:
+  operational-store:
     image: postgres:16-alpine
-    container_name: postgres
+    container_name: operational-store
     environment:
       POSTGRES_USER: colour
       POSTGRES_PASSWORD: colour
@@ -45,7 +45,7 @@ services:
     ports:
       - "5433:5432"   # host 5432 is often taken by a local Postgres
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - operational_store_data:/var/lib/postgresql/data
       - ./platform/storage/init/colours.sql:/docker-entrypoint-initdb.d/colours.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U colour"]
@@ -59,46 +59,46 @@ services:
       context: ./domain/relay
     container_name: outbox-relay
     depends_on:
-      postgres:
+      operational-store:
         condition: service_healthy
-      event-hub:
+      events:
         condition: service_started
     environment:
-      DATABASE_URL: postgresql://colour:colour@postgres:5432/colour
-      NATS_URL: nats://event-hub:4222
+      DATABASE_URL: postgresql://colour:colour@operational-store:5432/colour
+      EVENT_BROKER_URL: nats://events:4222
     restart: unless-stopped
 
-  event-hub:
+  events:
     image: nats:2.10-alpine
-    container_name: event-hub
+    container_name: events
     ports:
       - "4222:4222"
       - "8222:8222"
     restart: unless-stopped
     command: ["-js"]
-  
-  seaweedfs:
+
+  object-storage:
     image: chrislusf/seaweedfs:latest
-    container_name: seaweedfs
+    container_name: object-storage
     ports:
       - "8333:8333"   # S3 API
       - "8888:8888"   # filer UI
       - "9333:9333"   # master UI
     command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data
     volumes:
-      - seaweed_data:/data
+      - object_storage_data:/data
       - ./platform/storage/s3.json:/etc/seaweedfs/s3.json:ro
     restart: unless-stopped
 
-  seaweedfs-init:
+  object-storage-init:
     image: chrislusf/seaweedfs:latest
-    container_name: seaweedfs-init
+    container_name: object-storage-init
     depends_on:
-      - seaweedfs
+      - object-storage
     entrypoint: >
       /bin/sh -c '
         sleep 8;
-        echo "s3.bucket.create -name mybucket" | weed shell -master=seaweedfs:9333;
+        echo "s3.bucket.create -name mybucket" | weed shell -master=object-storage:9333;
       '
     restart: "no"
 
@@ -106,8 +106,8 @@ services:
     image: ghcr.io/warpstreamlabs/bento:latest
     container_name: bento-streaming
     depends_on:
-      - event-hub
-      - seaweedfs
+      - events
+      - object-storage
     volumes:
       - ./platform/streaming/bento/streaming.yaml:/bento.yaml:ro
     command: ["-c", "/bento.yaml"]
@@ -120,12 +120,12 @@ services:
       context: ./platform/analytics/summariser
     container_name: summariser
     depends_on:
-      - seaweedfs
+      - object-storage
     environment:
       AWS_ACCESS_KEY_ID: demokey
       AWS_SECRET_ACCESS_KEY: demosecret
       AWS_REGION: us-east-1
-      S3_ENDPOINT: http://seaweedfs:8333
+      S3_ENDPOINT: http://object-storage:8333
       BUCKET: mybucket
       SUMMARISE_INTERVAL_SECONDS: "15"
     restart: unless-stopped
@@ -138,7 +138,7 @@ services:
     volumes:
       - .:/app
     depends_on:
-      - seaweedfs
+      - object-storage
     environment:
       DATACONTRACT_S3_ACCESS_KEY_ID: demokey
       DATACONTRACT_S3_SECRET_ACCESS_KEY: demosecret
@@ -153,12 +153,12 @@ services:
       context: ./platform/analytics/visualisation
     container_name: visualisation
     depends_on:
-      - seaweedfs
+      - object-storage
     environment:
       AWS_ACCESS_KEY_ID: demokey
       AWS_SECRET_ACCESS_KEY: demosecret
       AWS_REGION: us-east-1
-      S3_ENDPOINT: http://seaweedfs:8333
+      S3_ENDPOINT: http://object-storage:8333
       BUCKET: mybucket
     ports:
       - "8501:8501"
@@ -196,5 +196,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  seaweed_data:
-  pg_data:
+  object_storage_data:
+  operational_store_data:

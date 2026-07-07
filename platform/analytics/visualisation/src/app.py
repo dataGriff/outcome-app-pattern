@@ -7,7 +7,7 @@ import pandas as pd
 import boto3
 import plotly.express as px
 
-S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://seaweedfs:8333")
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://object-storage:8333")
 BUCKET = os.getenv("BUCKET", "mybucket")
 OPERATIONAL_PREFIX = "colour-operational/"
 PERFORMANCE_KEY = "colour-performance/colour-performance.parquet"

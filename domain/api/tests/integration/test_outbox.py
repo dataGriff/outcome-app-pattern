@@ -10,7 +10,7 @@ import asyncpg
 import requests
 
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://colour:colour@postgres:5432/colour"
+    "DATABASE_URL", "postgresql://colour:colour@operational-store:5432/colour"
 )
 API = os.getenv("DOMAIN_API_URL", "http://behaviour-service:8000")
 

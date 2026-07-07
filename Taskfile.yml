@@ -8,7 +8,7 @@ tasks:
   subscribe:broker:
     desc: Subscribe to 'colour.generated' events on the event broker
     cmds:
-      - docker run --rm -it --network outcome-app-pattern_default natsio/nats-box:latest nats sub -s nats://event-hub:4222 colour.generated
+      - docker run --rm -it --network outcome-app-pattern_default natsio/nats-box:latest nats sub -s nats://events:4222 colour.generated
 
   lint:asyncapi:
     desc: Lint the AsyncAPI contract (requires asyncapi CLI)
@@ -79,7 +79,7 @@ tasks:
   test:contract:data:ci:
     desc: Bring the runtime up, verify both data-product contracts, tear down
     cmds:
-      - docker compose up -d --wait postgres event-hub seaweedfs seaweedfs-init behaviour-service outbox-relay bento-streaming summariser
+      - docker compose up -d --wait operational-store events object-storage object-storage-init behaviour-service outbox-relay bento-streaming summariser
       - defer: docker compose --profile test down -v
       - task: test:contract:data
 
@@ -136,4 +136,4 @@ tasks:
   bootstrap:storage:
     desc: Create the object-storage bucket (idempotent; compose does this automatically)
     cmds:
-      - echo "s3.bucket.create -name mybucket" | docker exec -i seaweedfs weed shell -master=localhost:9333
+      - echo "s3.bucket.create -name mybucket" | docker exec -i object-storage weed shell -master=localhost:9333

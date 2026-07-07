@@ -18,7 +18,7 @@ servers:
   raw:
     type: s3
     location: s3://mybucket/colour-operational/*.jsonl
-    endpointUrl: http://seaweedfs:8333
+    endpointUrl: http://object-storage:8333
     format: json
     delimiter: new_line
 

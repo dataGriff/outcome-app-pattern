@@ -52,7 +52,7 @@ Project Structure:
 - FastAPI for API
 - PostgreSQL for the operational store (with a transactional outbox)
 - Python for data engineering
-- Event Hub for event broker
+- NATS for the event broker
 - Typescript for web application
 - Streamlit for the reporting outcome
 - SeaweedFS (S3-compatible, Apache-2.0) for the data product storage

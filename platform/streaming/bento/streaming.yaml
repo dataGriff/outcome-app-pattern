@@ -1,6 +1,6 @@
 input:
   nats:
-    urls: [nats://event-hub:4222]
+    urls: [nats://events:4222]
     subject: colour.generated
     queue: my-queue
 
@@ -17,7 +17,7 @@ output:
   aws_s3:
     bucket: mybucket
     path: "colour-operational/${!timestamp_unix_nano()}.jsonl"
-    endpoint: http://seaweedfs:8333
+    endpoint: http://object-storage:8333
     force_path_style_urls: true
     region: us-east-1
     credentials:

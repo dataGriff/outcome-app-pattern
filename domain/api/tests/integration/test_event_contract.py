@@ -21,7 +21,7 @@ def test_colour_generated_event():
         nonlocal received_event
         nonlocal nc
         nc = NATS()
-        await nc.connect("nats://event-hub:4222")
+        await nc.connect("nats://events:4222")
         async def cb(msg):
             nonlocal received_event
             received_event = json.loads(msg.data.decode())

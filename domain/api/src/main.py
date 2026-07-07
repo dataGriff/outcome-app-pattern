@@ -21,7 +21,7 @@ except ImportError:  # pragma: no cover
 
 SUBJECT = "colour.generated"
 SOURCE = "urn:outcome-app-pattern:behaviour-service"
-NATS_URL = os.getenv("NATS_URL", "nats://localhost:4222")
+EVENT_BROKER_URL = os.getenv("EVENT_BROKER_URL", "nats://localhost:4222")
 
 app = FastAPI(title="Colour Behaviour Service")
 
@@ -77,7 +77,7 @@ async def _bridge_events_to_sse():
     """
     nc = NATS()
     try:
-        await nc.connect(NATS_URL)
+        await nc.connect(EVENT_BROKER_URL)
     except Exception:
         # Broker not up (e.g. API-only run) — SSE stays quiet.
         return

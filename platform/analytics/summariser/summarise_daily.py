@@ -14,7 +14,7 @@ import time
 import boto3
 import pandas as pd
 
-S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://seaweedfs:8333")
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://object-storage:8333")
 BUCKET = os.getenv("BUCKET", "mybucket")
 RAW_PREFIX = "colour-operational/"
 AGG_KEY = "colour-performance/colour-performance.parquet"

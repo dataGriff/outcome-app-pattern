@@ -12,9 +12,9 @@ import asyncpg
 from nats.aio.client import Client as NATS
 
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://colour:colour@postgres:5432/colour"
+    "DATABASE_URL", "postgresql://colour:colour@operational-store:5432/colour"
 )
-NATS_URL = os.getenv("NATS_URL", "nats://event-hub:4222")
+EVENT_BROKER_URL = os.getenv("EVENT_BROKER_URL", "nats://events:4222")
 POLL_SECONDS = float(os.getenv("RELAY_POLL_SECONDS", "0.5"))
 BATCH = int(os.getenv("RELAY_BATCH", "50"))
 
@@ -41,8 +41,8 @@ async def drain(pool, nc) -> int:
 async def main():
     pool = await asyncpg.create_pool(DATABASE_URL)
     nc = NATS()
-    await nc.connect(NATS_URL)
-    print(f"Relay up: postgres + nats {NATS_URL}")
+    await nc.connect(EVENT_BROKER_URL)
+    print(f"Relay up: operational-store + event broker {EVENT_BROKER_URL}")
     while True:
         published = await drain(pool, nc)
         if published:

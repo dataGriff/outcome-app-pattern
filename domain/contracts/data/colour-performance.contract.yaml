@@ -17,7 +17,7 @@ servers:
   aggregate:
     type: s3
     location: s3://mybucket/colour-performance/*.parquet
-    endpointUrl: http://seaweedfs:8333
+    endpointUrl: http://object-storage:8333
     format: parquet
 
 models:
