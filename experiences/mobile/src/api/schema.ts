@@ -11,11 +11,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Colour History */
-        get: operations["colour_history_colours_get"];
+        /** Recent colours (most recent first) */
+        get: operations["colourHistory"];
         put?: never;
-        /** Create Colour */
-        post: operations["create_colour_colours_post"];
+        /**
+         * Generate a colour
+         * @description Generate a colour, persist it, and enqueue a colour.generated event.
+         */
+        post: operations["createColour"];
         delete?: never;
         options?: never;
         head?: never;
@@ -31,11 +34,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Generate Colour
-         * @description Back-compat alias for POST /colours.
-         */
-        post: operations["generate_colour_generate_colour_post"];
+        /** Generate a colour (back-compat alias for POST /colours) */
+        post: operations["generateColour"];
         delete?: never;
         options?: never;
         head?: never;
@@ -49,8 +49,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Latest Colour */
-        get: operations["latest_colour_colours_latest_get"];
+        /** The most recently generated colour */
+        get: operations["latestColour"];
         put?: never;
         post?: never;
         delete?: never;
@@ -66,8 +66,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Events Stream */
-        get: operations["events_stream_events_stream_get"];
+        /**
+         * Server-Sent Events feed of colour.generated events
+         * @description Long-lived text/event-stream. Consumed by browser EventSource, the
+         *     mobile app, and the agent. Excluded from request-conformance fuzzing
+         *     because it never terminates.
+         */
+        get: operations["eventsStream"];
         put?: never;
         post?: never;
         delete?: never;
@@ -80,33 +85,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * Colour
-         * @enum {string}
-         */
-        Colour: "red" | "amber" | "green";
-        /** ColourEvent */
         ColourEvent: {
-            colour: components["schemas"]["Colour"];
-            /**
-             * Timestamp
-             * Format: date-time
-             */
+            /** @enum {string} */
+            colour: "red" | "amber" | "green";
+            /** Format: date-time */
             timestamp: string;
-        };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
         };
     };
     responses: never;
@@ -117,7 +100,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    colour_history_colours_get: {
+    colourHistory: {
         parameters: {
             query?: {
                 limit?: number;
@@ -128,7 +111,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description Recent colours, most recent first. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -137,18 +120,16 @@ export interface operations {
                     "application/json": components["schemas"]["ColourEvent"][];
                 };
             };
-            /** @description Validation Error */
+            /** @description Invalid query parameter. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
+                content?: never;
             };
         };
     };
-    create_colour_colours_post: {
+    createColour: {
         parameters: {
             query?: never;
             header?: never;
@@ -157,7 +138,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description The generated colour. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -168,7 +149,7 @@ export interface operations {
             };
         };
     };
-    generate_colour_generate_colour_post: {
+    generateColour: {
         parameters: {
             query?: never;
             header?: never;
@@ -177,7 +158,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description The generated colour. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -188,7 +169,7 @@ export interface operations {
             };
         };
     };
-    latest_colour_colours_latest_get: {
+    latestColour: {
         parameters: {
             query?: never;
             header?: never;
@@ -197,7 +178,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description The latest colour. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -206,9 +187,16 @@ export interface operations {
                     "application/json": components["schemas"]["ColourEvent"];
                 };
             };
+            /** @description No colours generated yet. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
-    events_stream_events_stream_get: {
+    eventsStream: {
         parameters: {
             query?: never;
             header?: never;
@@ -217,13 +205,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description An SSE stream of colour payloads. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/event-stream": string;
                 };
             };
         };

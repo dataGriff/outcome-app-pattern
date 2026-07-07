@@ -24,9 +24,16 @@ tasks:
     cmds:
       - python3 -m pip install 'datacontract-cli' && datacontract lint domain/contracts/data/data-product.contract.yaml
 
+  lint:openapi:
+    desc: Validate the OpenAPI contract (source of truth for the HTTP API)
+    sources:
+      - domain/contracts/api/behaviour-service.openapi.yaml
+    cmds:
+      - python3 -m pip install 'openapi-spec-validator' && openapi-spec-validator domain/contracts/api/behaviour-service.openapi.yaml
+
   lint:all:
-    desc: Lint both the AsyncAPI and data contracts
-    deps: [lint:asyncapi, lint:datacontract]
+    desc: Lint the OpenAPI, AsyncAPI and data contracts
+    deps: [lint:openapi, lint:asyncapi, lint:datacontract]
 
   test:unit:
     desc: Run all Python tests
@@ -86,9 +93,11 @@ tasks:
       - python3 test_tools.py
 
   gen:client:
-    desc: Generate a typed TS client for the experiences from the API's OpenAPI (needs the API running)
+    desc: Generate a typed TS client for the experiences from the committed OpenAPI contract
+    sources:
+      - domain/contracts/api/behaviour-service.openapi.yaml
     cmds:
-      - npx -y openapi-typescript@latest http://localhost:8000/openapi.json -o experiences/mobile/src/api/schema.ts
+      - npx -y openapi-typescript@latest domain/contracts/api/behaviour-service.openapi.yaml -o experiences/mobile/src/api/schema.ts
 
   read:events:
     desc: Read all event JSONL files from object storage into a pandas DataFrame

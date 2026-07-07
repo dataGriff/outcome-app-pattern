@@ -1,0 +1,7 @@
+{
+  "format_version": 1,
+  "schemathesis_version": "4.22.3",
+  "schema_location": "domain/contracts/api/behaviour-service.openapi.yaml",
+  "base_url": "http://localhost:8000",
+  "created_at": "2026-07-07T10:49:18.343059+00:00"
+}

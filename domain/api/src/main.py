@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -129,7 +129,7 @@ async def latest_colour():
 
 
 @app.get("/colours", response_model=List[ColourEvent])
-async def colour_history(limit: int = 10):
+async def colour_history(limit: int = Query(10, ge=1, le=100)):
     rows = await db.recent(limit)
     return [ColourEvent(colour=r["colour"], timestamp=r["created_at"]) for r in rows]
 
