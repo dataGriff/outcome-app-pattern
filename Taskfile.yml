@@ -13,16 +13,16 @@ tasks:
   lint:asyncapi:
     desc: Lint the AsyncAPI contract (requires asyncapi CLI)
     sources:
-      - contracts/api/behaviour-service.asyncapi.yaml
+      - domain/contracts/api/behaviour-service.asyncapi.yaml
     cmds:
-      - npx -y @asyncapi/cli@latest validate contracts/api/behaviour-service.asyncapi.yaml
+      - npx -y @asyncapi/cli@latest validate domain/contracts/api/behaviour-service.asyncapi.yaml
 
   lint:datacontract:
     desc: Lint the data contract (requires datacontract CLI)
     sources:
-      - contracts/data/data-product.contract.yaml
+      - domain/contracts/data/data-product.contract.yaml
     cmds:
-      - python3 -m pip install 'datacontract-cli' && datacontract lint contracts/data/data-product.contract.yaml
+      - python3 -m pip install 'datacontract-cli' && datacontract lint domain/contracts/data/data-product.contract.yaml
 
   lint:all:
     desc: Lint both the AsyncAPI and data contracts
@@ -30,24 +30,24 @@ tasks:
 
   test:unit:
     desc: Run all Python tests
-    sources: 
-      - behaviour/tests/unit
-      - behaviour/src
+    sources:
+      - domain/api/tests/unit
+      - domain/api/src
     cmds:
-      - PYTHONPATH=. pytest behaviour/tests/unit
+      - PYTHONPATH=. pytest domain/api/tests/unit
 
   test:integration:
     desc: Run all Python tests
-    sources: 
-      - behaviour/tests/integration
-      - behaviour/src
-      - behaviour/docker-compose.yml
+    sources:
+      - domain/api/tests/integration
+      - domain/api/src
+      - docker-compose.yml
     cmds:
       - docker compose up --build contract-test
 
   run:api:
     desc: Run the FastAPI behaviour service locally
-    dir: behaviour/src
+    dir: domain/api/src
     cmds:
       - uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
@@ -60,7 +60,7 @@ tasks:
     desc: Run all continuous integration tasks
     deps: [lint:all, test:unit, test:integration]
 
-  read:minio-events:
-    desc: Read all event JSONL files from MinIO into a pandas DataFrame
+  read:events:
+    desc: Read all event JSONL files from object storage into a pandas DataFrame
     cmds:
-      - python3 data/read_minio_jsonl_to_df.py
+      - python3 platform/analytics/outcomes/read_minio_jsonl_to_df.py

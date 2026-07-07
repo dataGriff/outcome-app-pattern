@@ -7,7 +7,7 @@ import requests
 
 # Load AsyncAPI spec and extract the ColourGeneratedEvent schema
 def get_event_schema():
-    with open("contracts/api/behaviour-service.asyncapi.yaml") as f:
+    with open("domain/contracts/api/behaviour-service.asyncapi.yaml") as f:
         asyncapi = yaml.safe_load(f)
     return asyncapi["components"]["messages"]["ColourGeneratedEvent"]["payload"]
 

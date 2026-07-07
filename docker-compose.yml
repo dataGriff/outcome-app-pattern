@@ -11,11 +11,11 @@ services:
       - behaviour-service
       - event-hub
     command: >
-      sh -c "pip install -r requirements.txt && pip install pyyaml jsonschema nats-py requests && python3 behaviour/tests/integration/test_event_contract.py"
+      sh -c "pip install -r requirements.txt && pip install pyyaml jsonschema nats-py requests && python3 domain/api/tests/integration/test_event_contract.py"
   
   behaviour-service:
     build:
-      context: ./behaviour
+      context: ./domain/api
     container_name: behaviour-service
     ports:
       - "8000:8000"
@@ -63,7 +63,7 @@ services:
       - event-hub
       - minio
     volumes:
-      - ./data/bento/streaming.yaml:/bento.yaml:ro
+      - ./platform/streaming/bento/streaming.yaml:/bento.yaml:ro
     command: ["-c", "/bento.yaml"]
     ports:
       - "4195:4195"
@@ -71,7 +71,7 @@ services:
 
   visualisation:
     build:
-      context: ./visualisation
+      context: ./platform/analytics/visualisation
     container_name: visualisation
     depends_on:
       - minio
@@ -87,7 +87,7 @@ services:
 
   web-frontend:
     build:
-      context: ./experience/web
+      context: ./experiences/web
     container_name: web-frontend
     depends_on:
       - behaviour-service

@@ -2,12 +2,12 @@ from fastapi.testclient import TestClient
 
 import pytest
 from unittest.mock import patch, AsyncMock
-from behaviour.src.main import app
+from domain.api.src.main import app
 
 client = TestClient(app)
 
 
-@patch("behaviour.src.main.publish_cloudevent", new_callable=AsyncMock)
+@patch("domain.api.src.main.publish_cloudevent", new_callable=AsyncMock)
 def test_generate_colour(mock_publish):
     response = client.post("/generate-colour")
     assert response.status_code == 200

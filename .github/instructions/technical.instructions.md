@@ -2,31 +2,28 @@
 
 ## Project Layout 
 
+The repo is organised into three source-aligned zones — the domain owns behaviour,
+contracts and events; experiences consume that one API; the platform runs the
+supporting infrastructure and analytics.
+
 Project Structure:
-├── behaviour/          # Business logic and behaviors
-│   ├── src/            # Source code for business logic
-│   └── tests/          # Business logic tests
-├── contracts/          
-│   ├── api/            # AsyncApi contract - https://www.asyncapi.com/en
-│   └── data/           # Data product contract - https://datacontract.com/
-├── data/               # Data product based on outcomes of behaviour
-│   ├── src/            # Source code for data product outcomes
-│   └── tests/          # Data product outcomes tests
-├── experience/         # User experience components
-│   ├── src/            # Source code for UI/UX components
-│   └── tests/          # UI/UX component tests
-├── outcomes/           # Reporting, metrics, and user experience outcomes
-│   ├── src/            # Source code for reporting outcomes
-│   └── tests/          # Reporting outcome validation tests
-├── docs/               # Documentation (requirements, design, guides)
-├── tools/              # Development tooling and scripts
-├── README.md           # Project overview and setup instructions
-├── CONTRIBUTING.md     # Contribution guidelines
-├── LICENSE.md          # Project license information
-├── CHANGELOG.md        # Project changelog
-├── .gitignore          # Git ignore file
-├── Taskfile.yml        # Taskfile for development commands
-└── .github/            # CI/CD workflows and templates
+├── domain/                 # The source-aligned core (owns behaviour + contracts + events)
+│   ├── api/                #   FastAPI behaviour service (src/ + tests/)
+│   ├── contracts/          #   api/ AsyncAPI + data/ data-product contract
+│   └── events/             #   Event payload schemas
+├── experiences/            # Channels that consume the one domain API
+│   ├── web/                #   Flask web frontend
+│   ├── mobile/             #   Expo / React Native (web-exported for compose)
+│   └── agent/              #   MCP server exposing the domain as agent tools
+├── platform/               # Supporting infrastructure and analytics
+│   ├── streaming/          #   Benthos (bento) NATS -> object-storage pipeline
+│   ├── storage/            #   Object-storage config (S3-compatible)
+│   └── analytics/          #   visualisation/ (Streamlit) + outcomes/ (pandas)
+├── docs/                   # Documentation (requirements, design, guides)
+├── README.md               # Project overview and setup instructions
+├── Taskfile.yml            # Taskfile for development commands
+├── docker-compose.yml      # Local, isolated multi-service stack
+└── .github/                # CI/CD workflows and templates
 
 ## Methodologies#
 

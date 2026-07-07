@@ -10,7 +10,7 @@ curl -Lsf https://warpstreamlabs.github.io/bento/sh/install | bash
 ```
 
 ```bash
-bento create > data/bento/config.yaml
+bento create > platform/streaming/bento/config.yaml
 ```
 
 ```bash
