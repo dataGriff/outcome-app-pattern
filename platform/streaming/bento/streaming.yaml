@@ -1,0 +1,27 @@
+input:
+  nats:
+    urls: [nats://events:4222]
+    subject: colour.generated
+    queue: my-queue
+
+pipeline:
+  processors:
+    # Project the CloudEvent envelope down to the flat data-product record.
+    # The raw data product hides transport details; it is the colour_operational
+    # model in the data contract.
+    - mapping: |
+        root.colour = this.data.colour
+        root.timestamp = this.data.timestamp
+
+output:
+  aws_s3:
+    bucket: mybucket
+    path: "colour-operational/${!timestamp_unix_nano()}.jsonl"
+    endpoint: http://object-storage:8333
+    force_path_style_urls: true
+    region: us-east-1
+    credentials:
+      id: demokey
+      secret: demosecret
+    content_type: application/json
+    max_in_flight: 1

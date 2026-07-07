@@ -1,9 +1,10 @@
 fastapi
 pytest
 uvicorn
-nats-py 
-cloudevents
+nats-py
+asyncpg
 pyyaml
 httpx
-deltalake 
+jsonschema
+requests
 s3fs

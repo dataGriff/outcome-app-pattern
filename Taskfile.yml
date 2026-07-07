@@ -3,51 +3,63 @@ tasks:
   up:
     desc: Start all services with Docker Compose
     cmds:
-      - docker-compose up --build -d
+      - docker compose up --build -d
 
   subscribe:broker:
     desc: Subscribe to 'colour.generated' events on the event broker
     cmds:
-      - docker run --rm -it --network outcome-app-pattern_default natsio/nats-box:latest nats sub -s nats://event-hub:4222 colour.generated
+      - docker run --rm -it --network outcome-app-pattern_default natsio/nats-box:latest nats sub -s nats://events:4222 colour.generated
 
   lint:asyncapi:
     desc: Lint the AsyncAPI contract (requires asyncapi CLI)
     sources:
-      - contracts/api/behaviour-service.asyncapi.yaml
+      - domain/contracts/api/behaviour-service.asyncapi.yaml
     cmds:
-      - npx -y @asyncapi/cli@latest validate contracts/api/behaviour-service.asyncapi.yaml
+      - npx -y @asyncapi/cli@latest validate domain/contracts/api/behaviour-service.asyncapi.yaml
 
   lint:datacontract:
-    desc: Lint the data contract (requires datacontract CLI)
+    desc: Lint the data-product contracts (requires datacontract CLI)
     sources:
-      - contracts/data/data-product.contract.yaml
+      - domain/contracts/data/colour-operational.contract.yaml
+      - domain/contracts/data/colour-performance.contract.yaml
     cmds:
-      - python3 -m pip install 'datacontract-cli' && datacontract lint contracts/data/data-product.contract.yaml
+      - python3 -m pip install 'datacontract-cli'
+      - datacontract lint domain/contracts/data/colour-operational.contract.yaml
+      - datacontract lint domain/contracts/data/colour-performance.contract.yaml
+
+  lint:openapi:
+    desc: Validate the OpenAPI contract (source of truth for the HTTP API)
+    sources:
+      - domain/contracts/api/behaviour-service.openapi.yaml
+    cmds:
+      - python3 -m pip install 'openapi-spec-validator' && openapi-spec-validator domain/contracts/api/behaviour-service.openapi.yaml
 
   lint:all:
-    desc: Lint both the AsyncAPI and data contracts
-    deps: [lint:asyncapi, lint:datacontract]
+    desc: Lint the OpenAPI, AsyncAPI and data contracts
+    deps: [lint:openapi, lint:asyncapi, lint:datacontract]
 
   test:unit:
     desc: Run all Python tests
-    sources: 
-      - behaviour/tests/unit
-      - behaviour/src
+    sources:
+      - domain/api/tests/unit
+      - domain/api/src
     cmds:
-      - PYTHONPATH=. pytest behaviour/tests/unit
+      - PYTHONPATH=. pytest domain/api/tests/unit
 
   test:integration:
-    desc: Run all Python tests
-    sources: 
-      - behaviour/tests/integration
-      - behaviour/src
-      - behaviour/docker-compose.yml
+    desc: "Runtime contract conformance: AsyncAPI events + outbox round-trip + OpenAPI (Schemathesis)"
+    sources:
+      - domain/api/tests/integration
+      - domain/api/src
+      - domain/contracts/api
+      - docker-compose.yml
     cmds:
-      - docker compose up --build contract-test
+      - docker compose up --build --abort-on-container-exit --exit-code-from contract-test contract-test
+      - docker compose --profile test down
 
   run:api:
     desc: Run the FastAPI behaviour service locally
-    dir: behaviour/src
+    dir: domain/api/src
     cmds:
       - uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
@@ -56,11 +68,72 @@ tasks:
     cmds:
       - curl -X POST http://localhost:8000/generate-colour
 
-  ci: 
-    desc: Run all continuous integration tasks
-    deps: [lint:all, test:unit, test:integration]
-
-  read:minio-events:
-    desc: Read all event JSONL files from MinIO into a pandas DataFrame
+  ci:
+    desc: Lint all three contracts + unit, runtime-conformance, and data-product contract tests
     cmds:
-      - python3 data/read_minio_jsonl_to_df.py
+      - task: lint:all
+      - task: test:unit
+      - task: test:integration
+      - task: test:contract:data:ci
+
+  test:contract:data:ci:
+    desc: Bring the runtime up, verify both data-product contracts, tear down
+    cmds:
+      - docker compose up -d --wait operational-store events object-storage object-storage-init behaviour-service outbox-relay bento-streaming summariser
+      - defer: docker compose --profile test down -v
+      - task: test:contract:data
+
+  build:mobile:
+    desc: Build the Expo mobile web-export image (heavy node build; kept out of ci)
+    cmds:
+      - docker compose build mobile-web
+
+  run:mobile:
+    desc: Run the Expo mobile app natively (dev server, outside compose)
+    dir: experiences/mobile
+    cmds:
+      - npm install
+      - npx expo start
+
+  run:agent:
+    desc: Run the MCP agent server over stdio (for a local agent host)
+    dir: experiences/agent
+    cmds:
+      - python3 server.py
+
+  test:mcp:
+    desc: Smoke-test the MCP tools against a running behaviour API
+    dir: experiences/agent
+    cmds:
+      - python3 test_tools.py
+
+  gen:client:
+    desc: Generate a typed TS client for the experiences from the committed OpenAPI contract
+    sources:
+      - domain/contracts/api/behaviour-service.openapi.yaml
+    cmds:
+      - npx -y openapi-typescript@latest domain/contracts/api/behaviour-service.openapi.yaml -o experiences/mobile/src/api/schema.ts
+
+  read:events:
+    desc: Read all event JSONL files from object storage into a pandas DataFrame
+    cmds:
+      - python3 platform/analytics/outcomes/read_events_to_df.py
+
+  summarise:daily:
+    desc: Run the daily summariser once (writes the colour-performance data product)
+    cmds:
+      - docker compose run --rm -e SUMMARISE_INTERVAL_SECONDS=0 summariser
+
+  test:contract:data:
+    desc: Test both data-product contracts against object storage (needs the stack up)
+    cmds:
+      - for: [1, 2, 3]
+        cmd: curl -s -X POST http://localhost:8000/colours > /dev/null
+      - sleep 6
+      - docker compose run --rm -e SUMMARISE_INTERVAL_SECONDS=0 summariser
+      - docker compose run --rm datacontract-test
+
+  bootstrap:storage:
+    desc: Create the object-storage bucket (idempotent; compose does this automatically)
+    cmds:
+      - echo "s3.bucket.create -name mybucket" | docker exec -i object-storage weed shell -master=localhost:9333

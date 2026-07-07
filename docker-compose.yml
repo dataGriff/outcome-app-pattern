@@ -1,85 +1,169 @@
-version: '3.8'
 services:
 
   contract-test:
     image: python:3.12-slim
     container_name: contract-test
+    profiles: ["test"]
     working_dir: /app
     volumes:
       - .:/app
     depends_on:
       - behaviour-service
-      - event-hub
+      - events
+      - operational-store
+      - outbox-relay
     command: >
-      sh -c "pip install -r requirements.txt && pip install pyyaml jsonschema nats-py requests && python3 behaviour/tests/integration/test_event_contract.py"
-  
+      sh -c "pip install -r requirements.txt &&
+      pip install pyyaml jsonschema nats-py requests asyncpg schemathesis &&
+      python3 domain/api/tests/integration/test_event_contract.py &&
+      python3 domain/api/tests/integration/test_outbox.py &&
+      schemathesis run domain/contracts/api/behaviour-service.openapi.yaml --url http://behaviour-service:8000 --exclude-path /events/stream"
+
   behaviour-service:
     build:
-      context: ./behaviour
+      context: ./domain/api
     container_name: behaviour-service
     ports:
       - "8000:8000"
     restart: unless-stopped
+    depends_on:
+      operational-store:
+        condition: service_healthy
+      events:
+        condition: service_started
     environment:
-    - NATS_URL=nats://event-hub:4222
+      - EVENT_BROKER_URL=nats://events:4222
+      - DATABASE_URL=postgresql://colour:colour@operational-store:5432/colour
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')\""]
+      interval: 3s
+      timeout: 3s
+      retries: 15
 
-  event-hub:
+  operational-store:
+    image: postgres:16-alpine
+    container_name: operational-store
+    environment:
+      POSTGRES_USER: colour
+      POSTGRES_PASSWORD: colour
+      POSTGRES_DB: colour
+    ports:
+      - "5433:5432"   # host 5432 is often taken by a local Postgres
+    volumes:
+      - operational_store_data:/var/lib/postgresql/data
+      - ./platform/storage/init/colours.sql:/docker-entrypoint-initdb.d/colours.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U colour"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  outbox-relay:
+    build:
+      context: ./domain/relay
+    container_name: outbox-relay
+    depends_on:
+      operational-store:
+        condition: service_healthy
+      events:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://colour:colour@operational-store:5432/colour
+      EVENT_BROKER_URL: nats://events:4222
+    restart: unless-stopped
+
+  events:
     image: nats:2.10-alpine
-    container_name: event-hub
+    container_name: events
     ports:
       - "4222:4222"
       - "8222:8222"
     restart: unless-stopped
     command: ["-js"]
-  
-  minio:
-    image: minio/minio:latest
-    container_name: minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server --console-address ":9001" /data
-    volumes:
-      - minio_data:/data
 
-  minio-mc:
-    image: minio/mc:latest
+  object-storage:
+    image: chrislusf/seaweedfs:latest
+    container_name: object-storage
+    ports:
+      - "8333:8333"   # S3 API
+      - "8888:8888"   # filer UI
+      - "9333:9333"   # master UI
+    command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data
+    volumes:
+      - object_storage_data:/data
+      - ./platform/storage/s3.json:/etc/seaweedfs/s3.json:ro
+    restart: unless-stopped
+
+  object-storage-init:
+    image: chrislusf/seaweedfs:latest
+    container_name: object-storage-init
     depends_on:
-      - minio
+      - object-storage
     entrypoint: >
       /bin/sh -c '
-        sleep 5;
-        mc alias set myminio http://minio:9000 minioadmin minioadmin &&
-        mc mb -p myminio/mybucket || true;
+        sleep 8;
+        echo "s3.bucket.create -name mybucket" | weed shell -master=object-storage:9333;
       '
+    restart: "no"
 
   bento-streaming:
     image: ghcr.io/warpstreamlabs/bento:latest
     container_name: bento-streaming
     depends_on:
-      - event-hub
-      - minio
+      - events
+      - object-storage
     volumes:
-      - ./data/bento/streaming.yaml:/bento.yaml:ro
+      - ./platform/streaming/bento/streaming.yaml:/bento.yaml:ro
     command: ["-c", "/bento.yaml"]
     ports:
       - "4195:4195"
     restart: unless-stopped
 
+  summariser:
+    build:
+      context: ./platform/analytics/summariser
+    container_name: summariser
+    depends_on:
+      - object-storage
+    environment:
+      AWS_ACCESS_KEY_ID: demokey
+      AWS_SECRET_ACCESS_KEY: demosecret
+      AWS_REGION: us-east-1
+      S3_ENDPOINT: http://object-storage:8333
+      BUCKET: mybucket
+      SUMMARISE_INTERVAL_SECONDS: "15"
+    restart: unless-stopped
+
+  datacontract-test:
+    image: python:3.12-slim
+    container_name: datacontract-test
+    profiles: ["test"]
+    working_dir: /app
+    volumes:
+      - .:/app
+    depends_on:
+      - object-storage
+    environment:
+      DATACONTRACT_S3_ACCESS_KEY_ID: demokey
+      DATACONTRACT_S3_SECRET_ACCESS_KEY: demosecret
+      DATACONTRACT_S3_REGION: us-east-1
+    command: >
+      sh -c "pip install -q 'datacontract-cli[s3]' 'ibis-framework[duckdb]' duckdb &&
+             datacontract test domain/contracts/data/colour-operational.contract.yaml &&
+             datacontract test domain/contracts/data/colour-performance.contract.yaml"
+
   visualisation:
     build:
-      context: ./visualisation
+      context: ./platform/analytics/visualisation
     container_name: visualisation
     depends_on:
-      - minio
+      - object-storage
     environment:
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_ACCESS_KEY_ID: demokey
+      AWS_SECRET_ACCESS_KEY: demosecret
       AWS_REGION: us-east-1
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://object-storage:8333
       BUCKET: mybucket
     ports:
       - "8501:8501"
@@ -87,13 +171,35 @@ services:
 
   web-frontend:
     build:
-      context: ./experience/web
+      context: ./experiences/web
     container_name: web-frontend
     depends_on:
       - behaviour-service
     ports:
-      - "5000:5000"
+      - "5001:5000"   # host 5000 is often taken by macOS AirPlay Receiver
+    restart: unless-stopped
+
+  mobile-web:
+    build:
+      context: ./experiences/mobile
+    container_name: mobile-web
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+  agent:
+    build:
+      context: ./experiences/agent
+    container_name: agent
+    depends_on:
+      - behaviour-service
+    environment:
+      DOMAIN_API_URL: http://behaviour-service:8000
+      MCP_TRANSPORT: streamable-http
+    ports:
+      - "3001:3001"
     restart: unless-stopped
 
 volumes:
-  minio_data:
+  object_storage_data:
+  operational_store_data:
