@@ -94,16 +94,24 @@ services:
     volumes:
       - object_storage_data:/data
       - ./platform/storage/s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      # The S3 gateway opens last (after master/volume/filer) and binds the
+      # container IP, not localhost — gate dependants on the actual port, or
+      # first writes race a refused connection.
+      test: ["CMD-SHELL", "nc -z $(hostname -i) 8333"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
     restart: unless-stopped
 
   object-storage-init:
     image: chrislusf/seaweedfs:3.97
     container_name: object-storage-init
     depends_on:
-      - object-storage
+      object-storage:
+        condition: service_healthy
     entrypoint: >
       /bin/sh -c '
-        sleep 8;
         echo "s3.bucket.create -name mybucket" | weed shell -master=object-storage:9333;
       '
     restart: "no"
@@ -112,8 +120,10 @@ services:
     image: ghcr.io/warpstreamlabs/bento:1.9.1
     container_name: streaming
     depends_on:
-      - events
-      - object-storage
+      events:
+        condition: service_started
+      object-storage-init:
+        condition: service_completed_successfully
     volumes:
       - ./platform/streaming/bento/streaming.yaml:/bento.yaml:ro
     command: ["-c", "/bento.yaml"]
@@ -126,7 +136,8 @@ services:
       context: ./platform/analytics/summariser
     container_name: summariser
     depends_on:
-      - object-storage
+      object-storage:
+        condition: service_healthy
     environment:
       AWS_ACCESS_KEY_ID: demokey
       AWS_SECRET_ACCESS_KEY: demosecret
@@ -144,7 +155,8 @@ services:
     volumes:
       - .:/app
     depends_on:
-      - object-storage
+      object-storage:
+        condition: service_healthy
     environment:
       DATACONTRACT_S3_ACCESS_KEY_ID: demokey
       DATACONTRACT_S3_SECRET_ACCESS_KEY: demosecret
@@ -159,7 +171,8 @@ services:
       context: ./platform/analytics/visualisation
     container_name: visualisation
     depends_on:
-      - object-storage
+      object-storage:
+        condition: service_healthy
     environment:
       AWS_ACCESS_KEY_ID: demokey
       AWS_SECRET_ACCESS_KEY: demosecret
