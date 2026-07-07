@@ -9,9 +9,13 @@ services:
     depends_on:
       - behaviour-service
       - event-hub
+      - postgres
+      - outbox-relay
     command: >
-      sh -c "pip install -r requirements.txt && pip install pyyaml jsonschema nats-py requests && python3 domain/api/tests/integration/test_event_contract.py"
-  
+      sh -c "pip install -r requirements.txt && pip install pyyaml jsonschema nats-py requests asyncpg &&
+             python3 domain/api/tests/integration/test_event_contract.py &&
+             python3 domain/api/tests/integration/test_outbox.py"
+
   behaviour-service:
     build:
       context: ./domain/api
@@ -19,8 +23,47 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      event-hub:
+        condition: service_started
     environment:
-    - NATS_URL=nats://event-hub:4222
+      - NATS_URL=nats://event-hub:4222
+      - DATABASE_URL=postgresql://colour:colour@postgres:5432/colour
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: colour
+      POSTGRES_PASSWORD: colour
+      POSTGRES_DB: colour
+    ports:
+      - "5433:5432"   # host 5432 is often taken by a local Postgres
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./platform/storage/init/colours.sql:/docker-entrypoint-initdb.d/colours.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U colour"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  outbox-relay:
+    build:
+      context: ./domain/relay
+    container_name: outbox-relay
+    depends_on:
+      postgres:
+        condition: service_healthy
+      event-hub:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://colour:colour@postgres:5432/colour
+      NATS_URL: nats://event-hub:4222
+    restart: unless-stopped
 
   event-hub:
     image: nats:2.10-alpine
@@ -118,3 +161,4 @@ services:
 
 volumes:
   seaweed_data:
+  pg_data:

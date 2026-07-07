@@ -3,7 +3,6 @@ import json
 import os
 import random
 import uuid
-from collections import deque
 from datetime import datetime
 from enum import Enum
 from typing import List
@@ -14,9 +13,14 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from nats.aio.client import Client as NATS
-from cloudevents.http import CloudEvent, to_structured
+
+try:  # flat layout inside the container (WORKDIR /app), packaged layout in tests
+    import db
+except ImportError:  # pragma: no cover
+    from domain.api.src import db
 
 SUBJECT = "colour.generated"
+SOURCE = "urn:outcome-app-pattern:behaviour-service"
 NATS_URL = os.getenv("NATS_URL", "nats://localhost:4222")
 
 app = FastAPI(title="Colour Behaviour Service")
@@ -41,32 +45,30 @@ class ColourEvent(BaseModel):
     timestamp: datetime
 
 
-# Operational state: recent history is kept in-memory (single-replica demo).
-# Durable/analytical history is the data product in object storage.
-_history: "deque[ColourEvent]" = deque(maxlen=100)
-
 # Per-connection SSE queues, fed by the long-lived NATS subscription below.
 _subscribers = set()
 
 
-async def publish_cloudevent(event: ColourEvent):
-    nc = NATS()
-    await nc.connect(NATS_URL)
-    attributes = {
+def _build_event(colour: str, ts: datetime) -> dict:
+    """Structured CloudEvent for the outbox / NATS. Kept as a plain dict so we
+    depend on nothing fragile to serialise it."""
+    return {
         "id": str(uuid.uuid4()),
-        "source": "urn:outcome-app-pattern:behaviour-service",
+        "source": SOURCE,
         "specversion": "1.0",
         "type": SUBJECT,
-        "time": event.timestamp.isoformat(),
+        "time": ts.isoformat(),
+        "data": {"colour": colour, "timestamp": ts.isoformat()},
     }
-    data = {"colour": event.colour, "timestamp": event.timestamp.isoformat()}
-    ce = CloudEvent(attributes, data)
-    headers, body = to_structured(ce)
-    await nc.publish(SUBJECT, body)
-    await nc.drain()
 
 
 @app.on_event("startup")
+async def _startup():
+    # Operational store is required — fail loudly in real runs if it's absent.
+    await db.connect()
+    await _bridge_events_to_sse()
+
+
 async def _bridge_events_to_sse():
     """One long-lived NATS subscription fans colour.generated out to SSE clients.
 
@@ -77,7 +79,7 @@ async def _bridge_events_to_sse():
     try:
         await nc.connect(NATS_URL)
     except Exception:
-        # Broker not up (e.g. unit tests / API-only run) — SSE stays quiet.
+        # Broker not up (e.g. API-only run) — SSE stays quiet.
         return
     app.state.nats = nc
 
@@ -94,18 +96,17 @@ async def _bridge_events_to_sse():
 
 
 @app.on_event("shutdown")
-async def _close_nats():
+async def _shutdown():
     nc = getattr(app.state, "nats", None)
     if nc is not None:
         await nc.drain()
+    await db.close()
 
 
 async def _generate() -> ColourEvent:
     colour = random.choice(list(Colour))
-    event = ColourEvent(colour=colour, timestamp=datetime.utcnow())
-    _history.append(event)
-    await publish_cloudevent(event)
-    return event
+    row = await db.create_colour(colour.value, _build_event)
+    return ColourEvent(colour=row["colour"], timestamp=row["created_at"])
 
 
 @app.post("/colours", response_model=ColourEvent)
@@ -121,14 +122,16 @@ async def generate_colour():
 
 @app.get("/colours/latest", response_model=ColourEvent)
 async def latest_colour():
-    if not _history:
+    row = await db.latest()
+    if row is None:
         raise HTTPException(status_code=404, detail="no colours generated yet")
-    return _history[-1]
+    return ColourEvent(colour=row["colour"], timestamp=row["created_at"])
 
 
 @app.get("/colours", response_model=List[ColourEvent])
 async def colour_history(limit: int = 10):
-    return list(reversed(list(_history)))[:limit]
+    rows = await db.recent(limit)
+    return [ColourEvent(colour=r["colour"], timestamp=r["created_at"]) for r in rows]
 
 
 @app.get("/events/stream")
