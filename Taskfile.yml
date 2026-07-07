@@ -3,7 +3,7 @@ tasks:
   up:
     desc: Start all services with Docker Compose
     cmds:
-      - docker-compose up --build -d
+      - docker compose up --build -d
 
   subscribe:broker:
     desc: Subscribe to 'colour.generated' events on the event broker
@@ -43,7 +43,8 @@ tasks:
       - domain/api/src
       - docker-compose.yml
     cmds:
-      - docker compose up --build contract-test
+      - docker compose up --build --abort-on-container-exit --exit-code-from contract-test contract-test
+      - docker compose down
 
   run:api:
     desc: Run the FastAPI behaviour service locally
@@ -83,6 +84,11 @@ tasks:
     dir: experiences/agent
     cmds:
       - python3 test_tools.py
+
+  gen:client:
+    desc: Generate a typed TS client for the experiences from the API's OpenAPI (needs the API running)
+    cmds:
+      - npx -y openapi-typescript@latest http://localhost:8000/openapi.json -o experiences/mobile/src/api/schema.ts
 
   read:events:
     desc: Read all event JSONL files from object storage into a pandas DataFrame
