@@ -1,4 +1,0 @@
-nats-py
-deltalake
-s3fs
-boto3
