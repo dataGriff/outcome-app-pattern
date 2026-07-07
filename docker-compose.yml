@@ -136,8 +136,8 @@ services:
       context: ./platform/analytics/summariser
     container_name: summariser
     depends_on:
-      object-storage:
-        condition: service_healthy
+      object-storage-init:
+        condition: service_completed_successfully
     environment:
       AWS_ACCESS_KEY_ID: demokey
       AWS_SECRET_ACCESS_KEY: demosecret
@@ -171,8 +171,8 @@ services:
       context: ./platform/analytics/visualisation
     container_name: visualisation
     depends_on:
-      object-storage:
-        condition: service_healthy
+      object-storage-init:
+        condition: service_completed_successfully
     environment:
       AWS_ACCESS_KEY_ID: demokey
       AWS_SECRET_ACCESS_KEY: demosecret
