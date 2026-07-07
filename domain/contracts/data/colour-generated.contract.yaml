@@ -1,0 +1,43 @@
+dataContractSpecification: 1.2.0
+id: urn:outcome-app-pattern:data-product:colour-generated
+info:
+  title: Colour Generated (raw data product)
+  version: 1.0.0
+  description: >
+    The flat event stream of generated colours, landed from colour.generated
+    events. Raw data product: append-only JSONL, transport envelope stripped.
+  owner: Data Team
+  contact:
+    name: Data Team
+    email: data@example.com
+
+servers:
+  raw:
+    type: s3
+    location: s3://mybucket/colour_generated/*.jsonl
+    endpointUrl: http://seaweedfs:8333
+    format: json
+    delimiter: new_line
+
+models:
+  colour_generated:
+    description: One record per generated colour.
+    type: table
+    fields:
+      colour:
+        type: string
+        description: The generated colour.
+        enum: [red, amber, green]
+      timestamp:
+        type: string
+        format: date-time
+        description: The time the colour was generated.
+
+servicelevels:
+  freshness:
+    description: The raw stream is available within 1 hour of the event.
+    threshold: 1h
+    timestampField: colour_generated.timestamp
+  retention:
+    description: Data is retained for one year.
+    period: P1Y

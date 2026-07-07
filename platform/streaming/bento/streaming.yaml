@@ -5,12 +5,18 @@ input:
     queue: my-queue
 
 pipeline:
-  processors: []
+  processors:
+    # Project the CloudEvent envelope down to the flat data-product record.
+    # The raw data product hides transport details; it is the colour_generated
+    # model in the data contract.
+    - mapping: |
+        root.colour = this.data.colour
+        root.timestamp = this.data.timestamp
 
 output:
   aws_s3:
     bucket: mybucket
-    path: "events-json-stream/${!timestamp_unix_nano()}.jsonl"
+    path: "colour_generated/${!timestamp_unix_nano()}.jsonl"
     endpoint: http://seaweedfs:8333
     force_path_style_urls: true
     region: us-east-1

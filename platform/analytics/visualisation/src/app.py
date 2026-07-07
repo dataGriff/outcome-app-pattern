@@ -8,7 +8,7 @@ import plotly.express as px
 
 S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://seaweedfs:8333")
 BUCKET = os.getenv("BUCKET", "mybucket")
-PREFIX = "events-json-stream/"
+PREFIX = "colour_generated/"
 
 ## @st.cache_data(show_spinner=False)
 def load_events():
@@ -29,11 +29,8 @@ def load_events():
                 if line.strip():
                     all_events.append(json.loads(line))
     if all_events:
-        df = pd.DataFrame(all_events)
-        # If 'data' column exists and is a dict, extract 'colour' from it
-        if 'data' in df.columns:
-            df['colour'] = df['data'].apply(lambda x: x.get('colour') if isinstance(x, dict) and 'colour' in x else None)
-        return df
+        # Flat data product: each record is {colour, timestamp}.
+        return pd.DataFrame(all_events)
     else:
         return pd.DataFrame()
 
@@ -53,7 +50,7 @@ def main():
         st.text("Last Refreshed: {}".format(time.ctime(st.session_state['last_refresh'])))
         st.metric(label="Total Events", value=len(df))
         # Show top 10 latest events
-        df_sorted = df.sort_values(by='time', ascending=False).head(10)
+        df_sorted = df.sort_values(by='timestamp', ascending=False).head(10)
         st.dataframe(df_sorted)
         st.markdown("---")
         # Visualisation: Aggregate count by 'colour' if present
