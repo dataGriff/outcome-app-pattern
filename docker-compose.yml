@@ -14,11 +14,10 @@ services:
       - outbox-relay
     command: >
       sh -c "pip install -r requirements.txt &&
-             pip install pyyaml jsonschema nats-py requests asyncpg schemathesis &&
-             python3 domain/api/tests/integration/test_event_contract.py &&
-             python3 domain/api/tests/integration/test_outbox.py &&
-             schemathesis run domain/contracts/api/behaviour-service.openapi.yaml
-               --url http://behaviour-service:8000 --exclude-path /events/stream"
+      pip install pyyaml jsonschema nats-py requests asyncpg schemathesis &&
+      python3 domain/api/tests/integration/test_event_contract.py &&
+      python3 domain/api/tests/integration/test_outbox.py &&
+      schemathesis run domain/contracts/api/behaviour-service.openapi.yaml --url http://behaviour-service:8000 --exclude-path /events/stream"
 
   behaviour-service:
     build:

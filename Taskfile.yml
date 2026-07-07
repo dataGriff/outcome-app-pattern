@@ -47,14 +47,15 @@ tasks:
       - PYTHONPATH=. pytest domain/api/tests/unit
 
   test:integration:
-    desc: Run all Python tests
+    desc: "Runtime contract conformance: AsyncAPI events + outbox round-trip + OpenAPI (Schemathesis)"
     sources:
       - domain/api/tests/integration
       - domain/api/src
+      - domain/contracts/api
       - docker-compose.yml
     cmds:
       - docker compose up --build --abort-on-container-exit --exit-code-from contract-test contract-test
-      - docker compose down
+      - docker compose --profile test down
 
   run:api:
     desc: Run the FastAPI behaviour service locally
@@ -68,8 +69,19 @@ tasks:
       - curl -X POST http://localhost:8000/generate-colour
 
   ci:
-    desc: Run all continuous integration tasks
-    deps: [lint:all, test:unit, test:integration]
+    desc: Lint all three contracts + unit, runtime-conformance, and data-product contract tests
+    cmds:
+      - task: lint:all
+      - task: test:unit
+      - task: test:integration
+      - task: test:contract:data:ci
+
+  test:contract:data:ci:
+    desc: Bring the runtime up, verify both data-product contracts, tear down
+    cmds:
+      - docker compose up -d --wait postgres event-hub seaweedfs seaweedfs-init behaviour-service outbox-relay bento-streaming summariser
+      - defer: docker compose --profile test down -v
+      - task: test:contract:data
 
   build:mobile:
     desc: Build the Expo mobile web-export image (heavy node build; kept out of ci)

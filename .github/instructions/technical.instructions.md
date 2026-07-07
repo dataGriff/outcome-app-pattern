@@ -8,8 +8,9 @@ supporting infrastructure and analytics.
 
 Project Structure:
 ├── domain/                 # The source-aligned core (owns behaviour + contracts + events)
-│   ├── api/                #   FastAPI behaviour service (src/ + tests/)
-│   ├── contracts/          #   api/ AsyncAPI + data/ data-product contract
+│   ├── api/                #   FastAPI behaviour service, Postgres-backed (src/ + tests/)
+│   ├── relay/              #   Transactional-outbox relay (Postgres outbox -> NATS)
+│   ├── contracts/          #   api/ OpenAPI + AsyncAPI; data/ two data-product contracts
 │   └── events/             #   Event payload schemas
 ├── experiences/            # Channels that consume the one domain API
 │   ├── web/                #   Flask web frontend
@@ -17,8 +18,8 @@ Project Structure:
 │   └── agent/              #   MCP server exposing the domain as agent tools
 ├── platform/               # Supporting infrastructure and analytics
 │   ├── streaming/          #   Benthos (bento) NATS -> object-storage pipeline
-│   ├── storage/            #   Object-storage config (S3-compatible)
-│   └── analytics/          #   visualisation/ (Streamlit) + outcomes/ (pandas)
+│   ├── storage/            #   Object-storage (SeaweedFS) + Postgres init schema
+│   └── analytics/          #   summariser/ (Parquet rollup) + visualisation/ (Streamlit) + outcomes/ (pandas)
 ├── docs/                   # Documentation (requirements, design, guides)
 ├── README.md               # Project overview and setup instructions
 ├── Taskfile.yml            # Taskfile for development commands
@@ -45,12 +46,13 @@ Project Structure:
 
 - Docker
 - FastAPI for API
+- PostgreSQL for the operational store (with a transactional outbox)
 - Python for data engineering
 - Event Hub for event broker
 - Typescript for web application
 - Streamlit for the reporting outcome
 - SeaweedFS (S3-compatible, Apache-2.0) for the data product storage
-- Delta file format
+- JSONL for the raw data product, Parquet for the curated aggregate
 
 ### Exclude
 
