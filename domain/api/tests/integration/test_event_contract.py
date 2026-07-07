@@ -32,7 +32,7 @@ def test_colour_generated_event():
         # Give NATS a moment to subscribe
         await asyncio.sleep(1)
         # Trigger the API
-        resp = requests.post("http://behaviour-service:8000/generate-colour")
+        resp = requests.post("http://behaviour-service:8000/colours")
         assert resp.status_code == 200
         # Wait for event
         for _ in range(10):

@@ -1,5 +1,9 @@
+import os
+
 from flask import Flask, render_template, jsonify
 import requests
+
+DOMAIN_API_URL = os.getenv("DOMAIN_API_URL", "http://behaviour-service:8000")
 
 app = Flask(__name__, template_folder="templates")
 
@@ -9,16 +13,16 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/api/generate-colour", methods=["POST", "GET"])
-def generate_colour_proxy():
+@app.route("/api/colours", methods=["POST"])
+def create_colour_proxy():
     """Proxy endpoint that calls the behaviour service.
 
-    When running inside docker-compose the behaviour service is reachable
-    at http://behaviour-service:8000. This server proxies requests there
-    to avoid CORS from the browser.
+    The browser POSTs same-origin here; this server forwards to the domain API
+    (POST /colours) to avoid CORS on writes. The API location comes from
+    DOMAIN_API_URL, like the mobile and agent experiences.
     """
     try:
-        resp = requests.post("http://behaviour-service:8000/generate-colour", timeout=5)
+        resp = requests.post(f"{DOMAIN_API_URL}/colours", timeout=5)
     except requests.exceptions.RequestException as e:
         return jsonify({"error": "failed to reach behaviour service", "details": str(e)}), 502
 

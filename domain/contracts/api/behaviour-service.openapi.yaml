@@ -49,17 +49,6 @@ paths:
                   $ref: "#/components/schemas/ColourEvent"
         "422":
           description: Invalid query parameter.
-  /generate-colour:
-    post:
-      operationId: generateColour
-      summary: Generate a colour (back-compat alias for POST /colours)
-      responses:
-        "200":
-          description: The generated colour.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ColourEvent"
   /colours/latest:
     get:
       operationId: latestColour

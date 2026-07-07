@@ -37,7 +37,7 @@
       btn.addEventListener('click', async () => {
         res.textContent = '⏳ generating...';
         try {
-          const r = await fetch('/api/generate-colour', { method: 'POST' });
+          const r = await fetch('/api/colours', { method: 'POST' });
           if (!r.ok) throw new Error('network');
           const j = await r.json();
           res.textContent = j.colour + ' @ ' + (j.timestamp || '');

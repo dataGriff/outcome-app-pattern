@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import random
 import uuid
@@ -22,6 +23,12 @@ except ImportError:  # pragma: no cover
 SUBJECT = "colour.generated"
 SOURCE = "urn:outcome-app-pattern:behaviour-service"
 EVENT_BROKER_URL = os.getenv("EVENT_BROKER_URL", "nats://localhost:4222")
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("behaviour-service")
 
 app = FastAPI(title="Colour Behaviour Service")
 
@@ -80,8 +87,10 @@ async def _bridge_events_to_sse():
         await nc.connect(EVENT_BROKER_URL)
     except Exception:
         # Broker not up (e.g. API-only run) — SSE stays quiet.
+        logger.warning("event broker unreachable at %s; SSE feed disabled", EVENT_BROKER_URL)
         return
     app.state.nats = nc
+    logger.info("SSE bridge subscribed to %s on %s", SUBJECT, EVENT_BROKER_URL)
 
     async def _on_message(msg):
         try:
@@ -111,12 +120,6 @@ async def _generate() -> ColourEvent:
 
 @app.post("/colours", response_model=ColourEvent)
 async def create_colour():
-    return await _generate()
-
-
-@app.post("/generate-colour", response_model=ColourEvent)
-async def generate_colour():
-    """Back-compat alias for POST /colours."""
     return await _generate()
 
 

@@ -1,28 +1,42 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Pressable, FlatList } from 'react-native';
+import createClient from 'openapi-fetch';
+import type { paths, components } from './src/api/schema';
+
+type ColourEvent = components['schemas']['ColourEvent'];
+type FeedItem = ColourEvent & { key: string };
 
 const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
-const DOTS = { red: '#e5484d', amber: '#ffb224', green: '#30a46c' };
+const DOTS: Record<ColourEvent['colour'], string> = {
+  red: '#e5484d',
+  amber: '#ffb224',
+  green: '#30a46c',
+};
+
+// Typed client generated from the committed OpenAPI contract (task gen:client) —
+// the experience cannot call an endpoint or read a field the contract doesn't define.
+const client = createClient<paths>({ baseUrl: API });
 
 export default function App() {
-  const [latest, setLatest] = useState(null);
-  const [feed, setFeed] = useState([]);
+  const [latest, setLatest] = useState<ColourEvent | null>(null);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
   const [conn, setConn] = useState('connecting…');
 
   useEffect(() => {
-    fetch(`${API}/colours/latest`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => j && setLatest(j))
+    client
+      .GET('/colours/latest')
+      .then(({ data }) => data && setLatest(data))
       .catch(() => {});
 
-    // Web export runs in a browser, where EventSource is available.
+    // Web export runs in a browser, where EventSource is available. SSE is not
+    // part of the typed surface — it's a raw text/event-stream.
     if (typeof EventSource === 'undefined') return;
     const es = new EventSource(`${API}/events/stream`);
     es.onopen = () => setConn('live');
     es.onerror = () => setConn('reconnecting…');
-    es.onmessage = (m) => {
-      const ev = JSON.parse(m.data);
+    es.onmessage = (m: MessageEvent) => {
+      const ev: ColourEvent = JSON.parse(m.data);
       setLatest(ev);
       setFeed((f) => [{ ...ev, key: `${ev.timestamp}-${f.length}` }, ...f].slice(0, 10));
     };
@@ -31,8 +45,8 @@ export default function App() {
 
   const generate = async () => {
     try {
-      const r = await fetch(`${API}/colours`, { method: 'POST' });
-      if (r.ok) setLatest(await r.json());
+      const { data } = await client.POST('/colours');
+      if (data) setLatest(data);
     } catch (e) {
       // ignore in demo
     }
