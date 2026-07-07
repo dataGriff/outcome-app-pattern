@@ -92,7 +92,7 @@ services:
     depends_on:
       - behaviour-service
     ports:
-      - "5000:5000"
+      - "5001:5000"   # host 5000 is often taken by macOS AirPlay Receiver
     restart: unless-stopped
 
 volumes:

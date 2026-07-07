@@ -1,5 +1,13 @@
-Simple Flask web frontend that calls the behaviour service.
+# experiences/web — Flask web experience
 
-Run with docker-compose (root compose maps port 5000).
+The **web** channel consuming the one behaviour API. Run with the root
+`docker-compose.yml`; the UI is served on **http://localhost:5001** (host 5000 is
+often taken by macOS AirPlay Receiver).
 
-The UI proxies to `/api/generate-colour` which forwards to the behaviour service at `http://behaviour-service:8000/generate-colour` inside compose to avoid CORS.
+- **Generate** — the button POSTs to the same-origin Flask proxy
+  `/api/generate-colour`, which forwards to `http://behaviour-service:8000/colours`
+  inside compose (proxying writes avoids browser CORS).
+- **Live feed** — the page subscribes directly to the API's SSE bridge at
+  `http://localhost:8000/events/stream` (CORS-enabled) and renders
+  `colour.generated` events as they happen — the same event stream the mobile and
+  agent experiences consume.
