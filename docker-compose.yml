@@ -95,5 +95,26 @@ services:
       - "5001:5000"   # host 5000 is often taken by macOS AirPlay Receiver
     restart: unless-stopped
 
+  mobile-web:
+    build:
+      context: ./experiences/mobile
+    container_name: mobile-web
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+  agent:
+    build:
+      context: ./experiences/agent
+    container_name: agent
+    depends_on:
+      - behaviour-service
+    environment:
+      DOMAIN_API_URL: http://behaviour-service:8000
+      MCP_TRANSPORT: streamable-http
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
 volumes:
   seaweed_data:

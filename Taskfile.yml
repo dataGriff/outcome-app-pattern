@@ -56,9 +56,33 @@ tasks:
     cmds:
       - curl -X POST http://localhost:8000/generate-colour
 
-  ci: 
+  ci:
     desc: Run all continuous integration tasks
     deps: [lint:all, test:unit, test:integration]
+
+  build:mobile:
+    desc: Build the Expo mobile web-export image (heavy node build; kept out of ci)
+    cmds:
+      - docker compose build mobile-web
+
+  run:mobile:
+    desc: Run the Expo mobile app natively (dev server, outside compose)
+    dir: experiences/mobile
+    cmds:
+      - npm install
+      - npx expo start
+
+  run:agent:
+    desc: Run the MCP agent server over stdio (for a local agent host)
+    dir: experiences/agent
+    cmds:
+      - python3 server.py
+
+  test:mcp:
+    desc: Smoke-test the MCP tools against a running behaviour API
+    dir: experiences/agent
+    cmds:
+      - python3 test_tools.py
 
   read:events:
     desc: Read all event JSONL files from object storage into a pandas DataFrame
