@@ -1,18 +1,20 @@
+import os
 import boto3
 import json
 import pandas as pd
 
-# MinIO/S3 config
-S3_ENDPOINT = "http://localhost:9000"
-BUCKET = "mybucket"
+# S3-compatible object storage (SeaweedFS). Run from the host, so default to the
+# published port on localhost; override via env to point elsewhere.
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:8333")
+BUCKET = os.getenv("BUCKET", "mybucket")
 PREFIX = "events-json-stream/"
 
 s3 = boto3.client(
     's3',
     endpoint_url=S3_ENDPOINT,
-    aws_access_key_id='minioadmin',
-    aws_secret_access_key='minioadmin',
-    region_name='us-east-1'
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", "demokey"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "demosecret"),
+    region_name=os.getenv("AWS_REGION", "us-east-1")
 )
 
 # List all JSONL files in the prefix

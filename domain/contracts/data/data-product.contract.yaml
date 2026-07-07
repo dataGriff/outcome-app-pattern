@@ -10,10 +10,12 @@ info:
     email: data@example.com
 
 servers:
-  minio:
+  seaweedfs:
     type: s3
-    location: minio://data-product/clicks
-    format: delta
+    location: s3://mybucket/events-json-stream
+    endpointUrl: http://seaweedfs:8333
+    format: json
+    delimiter: new_line
 
 models:
   button_click_event:

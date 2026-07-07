@@ -6,19 +6,19 @@ from nats.aio.client import Client as NATS
 import boto3
 from botocore.client import Config
 
-# MinIO/S3 config
-os.environ["AWS_ACCESS_KEY_ID"] = "minioadmin"
-os.environ["AWS_SECRET_ACCESS_KEY"] = "minioadmin"
-os.environ["AWS_REGION"] = "us-east-1"
-S3_ENDPOINT = "http://minio:9000"
-BUCKET = "mybucket"
+# S3-compatible object storage (SeaweedFS) config
+os.environ.setdefault("AWS_ACCESS_KEY_ID", "demokey")
+os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "demosecret")
+os.environ.setdefault("AWS_REGION", "us-east-1")
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://seaweedfs:8333")
+BUCKET = os.getenv("BUCKET", "mybucket")
 JSON_OBJECT_PREFIX = "events-json-stream/"
 
 # NATS config
-NATS_URL = "nats://event-hub:4222"
+NATS_URL = os.getenv("NATS_URL", "nats://event-hub:4222")
 SUBJECT = "colour.generated"
 
-# Set up S3 client for MinIO
+# Set up S3 client
 s3 = boto3.client(
     "s3",
     endpoint_url=S3_ENDPOINT,
@@ -28,7 +28,7 @@ s3 = boto3.client(
     config=Config(signature_version="s3v4"),
 )
 
-def write_event_to_minio(event_dict):
+def write_event_to_storage(event_dict):
     guid = str(uuid.uuid4())
     object_key = f"{JSON_OBJECT_PREFIX}{guid}.jsonl"
     body = json.dumps(event_dict) + "\n"
@@ -44,7 +44,7 @@ async def main():
         try:
             data = json.loads(msg.data.decode())
             print(f"Received message: {data}")
-            write_event_to_minio(data)
+            write_event_to_storage(data)
         except Exception as e:
             print(f"Error processing message: {e}")
 

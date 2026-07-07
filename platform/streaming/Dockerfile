@@ -15,6 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir nats-py deltalake pandas boto3
 
 # Copy the application code
-COPY ./src/stream_nats_to_minio_delta.py ./
+COPY ./src/stream_nats_to_seaweed_delta.py ./
 
-CMD ["python", "stream_nats_to_minio_delta.py"]
+CMD ["python", "stream_nats_to_seaweed_delta.py"]

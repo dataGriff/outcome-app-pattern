@@ -11,11 +11,11 @@ output:
   aws_s3:
     bucket: mybucket
     path: "events-json-stream/${!timestamp_unix_nano()}.jsonl"
-    endpoint: http://minio:9000
+    endpoint: http://seaweedfs:8333
     force_path_style_urls: true
     region: us-east-1
     credentials:
-      id: minioadmin
-      secret: minioadmin
+      id: demokey
+      secret: demosecret
     content_type: application/json
     max_in_flight: 1

@@ -63,4 +63,9 @@ tasks:
   read:events:
     desc: Read all event JSONL files from object storage into a pandas DataFrame
     cmds:
-      - python3 platform/analytics/outcomes/read_minio_jsonl_to_df.py
+      - python3 platform/analytics/outcomes/read_events_to_df.py
+
+  bootstrap:storage:
+    desc: Create the object-storage bucket (idempotent; compose does this automatically)
+    cmds:
+      - echo "s3.bucket.create -name mybucket" | docker exec -i seaweedfs weed shell -master=localhost:9333

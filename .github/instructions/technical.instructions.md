@@ -49,7 +49,7 @@ Project Structure:
 - Event Hub for event broker
 - Typescript for web application
 - Streamlit for the reporting outcome
-- MinIO for the data product storage
+- SeaweedFS (S3-compatible, Apache-2.0) for the data product storage
 - Delta file format
 
 ### Exclude

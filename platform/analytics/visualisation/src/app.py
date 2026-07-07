@@ -1,12 +1,13 @@
 import streamlit as st
 import time
+import os
 import pandas as pd
 import boto3
 import json
 import plotly.express as px
 
-S3_ENDPOINT = "http://minio:9000"
-BUCKET = "mybucket"
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://seaweedfs:8333")
+BUCKET = os.getenv("BUCKET", "mybucket")
 PREFIX = "events-json-stream/"
 
 ## @st.cache_data(show_spinner=False)
@@ -14,9 +15,9 @@ def load_events():
     s3 = boto3.client(
         's3',
         endpoint_url=S3_ENDPOINT,
-        aws_access_key_id='minioadmin',
-        aws_secret_access_key='minioadmin',
-        region_name='us-east-1'
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", "demokey"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "demosecret"),
+        region_name=os.getenv("AWS_REGION", "us-east-1")
     )
     objects = s3.list_objects_v2(Bucket=BUCKET, Prefix=PREFIX).get('Contents', [])
     all_events = []
@@ -38,7 +39,7 @@ def load_events():
 
 def main():
 
-    st.title("MinIO Event Visualisation")
+    st.title("Colour Event Visualisation")
     st.session_state['last_refresh'] = time.time()
     # Add a manual refresh button
     if st.button("🔄 Refresh Data"):
