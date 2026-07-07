@@ -1,10 +1,10 @@
-"""Daily summariser: roll the raw colour_generated events up into the
-daily_colour_aggregate curated data product.
+"""Daily summariser: roll the colour-operational events up into the
+colour-performance curated data product.
 
-Reads the flat JSONL raw product, groups by day + colour, counts, and writes
-Parquet (the curated analytical format). Full recompute → overwrite a single
-object; deterministic and fine at demo scale. This is the routine batch rollup
-most apps need, made explicit.
+Reads the flat JSONL operational product, groups by day + colour, counts, and
+writes Parquet (the curated analytical format). Full recompute → overwrite a
+single object; deterministic and fine at demo scale. This is the routine batch
+rollup most apps need, made explicit.
 """
 import io
 import json
@@ -16,8 +16,8 @@ import pandas as pd
 
 S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://seaweedfs:8333")
 BUCKET = os.getenv("BUCKET", "mybucket")
-RAW_PREFIX = "colour_generated/"
-AGG_KEY = "daily_colour_aggregate/daily_colour_aggregate.parquet"
+RAW_PREFIX = "colour-operational/"
+AGG_KEY = "colour-performance/colour-performance.parquet"
 INTERVAL = int(os.getenv("SUMMARISE_INTERVAL_SECONDS", "0"))  # 0 = run once
 
 

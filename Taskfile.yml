@@ -20,12 +20,12 @@ tasks:
   lint:datacontract:
     desc: Lint the data-product contracts (requires datacontract CLI)
     sources:
-      - domain/contracts/data/colour-generated.contract.yaml
-      - domain/contracts/data/daily-colour-aggregate.contract.yaml
+      - domain/contracts/data/colour-operational.contract.yaml
+      - domain/contracts/data/colour-performance.contract.yaml
     cmds:
       - python3 -m pip install 'datacontract-cli'
-      - datacontract lint domain/contracts/data/colour-generated.contract.yaml
-      - datacontract lint domain/contracts/data/daily-colour-aggregate.contract.yaml
+      - datacontract lint domain/contracts/data/colour-operational.contract.yaml
+      - datacontract lint domain/contracts/data/colour-performance.contract.yaml
 
   lint:openapi:
     desc: Validate the OpenAPI contract (source of truth for the HTTP API)
@@ -120,7 +120,7 @@ tasks:
       - python3 platform/analytics/outcomes/read_events_to_df.py
 
   summarise:daily:
-    desc: Run the daily summariser once (writes the daily_colour_aggregate data product)
+    desc: Run the daily summariser once (writes the colour-performance data product)
     cmds:
       - docker compose run --rm -e SUMMARISE_INTERVAL_SECONDS=0 summariser
 

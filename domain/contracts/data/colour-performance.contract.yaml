@@ -1,11 +1,13 @@
 dataContractSpecification: 1.2.0
-id: urn:outcome-app-pattern:data-product:daily-colour-aggregate
+id: urn:outcome-app-pattern:data-product:colour-performance
 info:
-  title: Daily Colour Aggregate (curated data product)
+  title: Colour — Performance & Status
   version: 1.0.0
   description: >
-    Daily counts of generated colours, produced by the summariser from the raw
-    colour_generated stream. Curated data product: typed, columnar Parquet.
+    Purpose: performance of colour generation over time, plus current status at a
+    glance. Daily counts per colour let consumers see how colour usage trends and where
+    things stand right now. This is the curated data product, produced by the summariser
+    from the operational stream and stored as typed, columnar Parquet.
   owner: Data Team
   contact:
     name: Data Team
@@ -14,12 +16,12 @@ info:
 servers:
   aggregate:
     type: s3
-    location: s3://mybucket/daily_colour_aggregate/*.parquet
+    location: s3://mybucket/colour-performance/*.parquet
     endpointUrl: http://seaweedfs:8333
     format: parquet
 
 models:
-  daily_colour_aggregate:
+  colour_performance:
     description: Count of generated colours per colour per day.
     type: table
     fields:
@@ -36,6 +38,6 @@ models:
 
 servicelevels:
   frequency:
-    description: Recomputed on a regular cadence from the raw stream.
+    description: Recomputed on a regular cadence from the operational stream.
     type: batch
     cron: "0 * * * *"

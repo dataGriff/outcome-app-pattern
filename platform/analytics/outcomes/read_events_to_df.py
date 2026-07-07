@@ -7,7 +7,7 @@ import pandas as pd
 # published port on localhost; override via env to point elsewhere.
 S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:8333")
 BUCKET = os.getenv("BUCKET", "mybucket")
-PREFIX = "colour_generated/"
+PREFIX = "colour-operational/"
 
 s3 = boto3.client(
     's3',

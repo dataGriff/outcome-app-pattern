@@ -145,8 +145,8 @@ services:
       DATACONTRACT_S3_REGION: us-east-1
     command: >
       sh -c "pip install -q 'datacontract-cli[s3]' 'ibis-framework[duckdb]' duckdb &&
-             datacontract test domain/contracts/data/colour-generated.contract.yaml &&
-             datacontract test domain/contracts/data/daily-colour-aggregate.contract.yaml"
+             datacontract test domain/contracts/data/colour-operational.contract.yaml &&
+             datacontract test domain/contracts/data/colour-performance.contract.yaml"
 
   visualisation:
     build:

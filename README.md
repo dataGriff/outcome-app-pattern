@@ -34,8 +34,8 @@ the **pattern** in focus, not the feature.
  └───────────┴────────────┘                     ┌──────────────────────────────────┐
    consume the one API                          │ streaming/  bento: NATS → storage │
                                                 │ storage/    SeaweedFS (S3)        │
-                                                │   colour_generated/    (raw JSONL)│
-                                                │   daily_colour_aggregate/ (Parquet)│
+                                                │   colour-operational/  (raw JSONL)│
+                                                │   colour-performance/  (Parquet)  │
                                                 │ analytics/  summariser + Streamlit│
                                                 └──────────────────────────────────┘
 ```
@@ -78,7 +78,7 @@ task up          # build + start the whole stack
 
 Try it: click **Generate** in the web or mobile UI, or `curl -X POST localhost:8000/colours`.
 Watch the live feed update in every experience, then see the event land as a `.jsonl` object
-under `colour_generated/`, the summariser roll it into `daily_colour_aggregate/`, and the
+under `colour-operational/`, the summariser roll it into `colour-performance/`, and the
 Streamlit counts move.
 
 ## Common tasks
@@ -104,9 +104,12 @@ Three authored, versioned, **verified** contracts — the API cannot drift from 
   experiences' typed client is generated from it (`task gen:client`).
 - **Events** — `domain/contracts/api/behaviour-service.asyncapi.yaml` (AsyncAPI). Emitted events
   are validated against it in the integration test.
-- **Data products** — `domain/contracts/data/colour-generated.contract.yaml` (raw, JSONL) and
-  `domain/contracts/data/daily-colour-aggregate.contract.yaml` (curated, Parquet). Both are
-  verified against the real objects in SeaweedFS with `datacontract test`.
+- **Data products** — named for the need they serve, not their shape:
+  `domain/contracts/data/colour-operational.contract.yaml` (**operational awareness** + long-term
+  granular detail; raw JSONL) and `domain/contracts/data/colour-performance.contract.yaml`
+  (**performance** over time + current status; curated Parquet). Each contract states its purpose,
+  and both are verified against the real objects in SeaweedFS with `datacontract test`. The
+  Streamlit app has a tab per product: **Operational Awareness** and **Performance**.
 - **Event payload** — `domain/events/colour.generated.schema.json` (JSON Schema, CloudEvents).
 
 ## Notes & caveats

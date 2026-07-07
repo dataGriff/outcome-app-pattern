@@ -35,6 +35,10 @@ Project Structure:
 - Data outcomes and reporting will live alongside the application.
 - Event driven patterns will be leveraged.
 - The application behaviour will be decoupled from the data product.
+- Data products are named by the need they serve (their purpose), not by their shape — e.g.
+  `colour-operational` (operational awareness + long-term detail) and `colour-performance`
+  (performance over time + current status). Each data contract states its purpose, and the
+  analytics surface it with a tab per product.
 - Local first and isolation.
 - AsyncAPI will be used for API contracts.
 - Data contract will be used for data contracts.
