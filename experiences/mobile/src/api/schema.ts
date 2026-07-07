@@ -25,23 +25,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/generate-colour": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Generate a colour (back-compat alias for POST /colours) */
-        post: operations["generateColour"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/colours/latest": {
         parameters: {
             query?: never;
@@ -130,26 +113,6 @@ export interface operations {
         };
     };
     createColour: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The generated colour. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ColourEvent"];
-                };
-            };
-        };
-    };
-    generateColour: {
         parameters: {
             query?: never;
             header?: never;

@@ -15,22 +15,13 @@ def _row(colour="green", ts=TS):
 
 
 @patch("domain.api.src.db.create_colour", new_callable=AsyncMock)
-def test_generate_colour_alias(mock_create):
-    mock_create.return_value = _row()
-    response = client.post("/generate-colour")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["colour"] in ["red", "amber", "green"]
-    assert "timestamp" in data
-    mock_create.assert_awaited_once()
-
-
-@patch("domain.api.src.db.create_colour", new_callable=AsyncMock)
 def test_create_colour(mock_create):
     mock_create.return_value = _row()
     response = client.post("/colours")
     assert response.status_code == 200
-    assert response.json()["colour"] in ["red", "amber", "green"]
+    data = response.json()
+    assert data["colour"] in ["red", "amber", "green"]
+    assert "timestamp" in data
     mock_create.assert_awaited_once()
 
 

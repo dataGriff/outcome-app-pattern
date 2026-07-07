@@ -8,7 +8,7 @@ tasks:
   subscribe:broker:
     desc: Subscribe to 'colour.generated' events on the event broker
     cmds:
-      - docker run --rm -it --network outcome-app-pattern_default natsio/nats-box:latest nats sub -s nats://events:4222 colour.generated
+      - docker run --rm -it --network outcome-app-pattern_default natsio/nats-box:0.18.0 nats sub -s nats://events:4222 colour.generated
 
   lint:asyncapi:
     desc: Lint the AsyncAPI contract (requires asyncapi CLI)
@@ -47,7 +47,7 @@ tasks:
       - PYTHONPATH=. pytest domain/api/tests/unit
 
   test:integration:
-    desc: "Runtime contract conformance: AsyncAPI events + outbox round-trip + OpenAPI (Schemathesis)"
+    desc: "Runtime contract conformance: AsyncAPI events + outbox round-trip + OpenAPI (Schemathesis + spec drift)"
     sources:
       - domain/api/tests/integration
       - domain/api/src
@@ -64,9 +64,9 @@ tasks:
       - uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
   post:api:
-    desc: Perform a simple POST request to the /generate-colour endpoint
+    desc: Perform a simple POST request to the /colours endpoint
     cmds:
-      - curl -X POST http://localhost:8000/generate-colour
+      - curl -X POST http://localhost:8000/colours
 
   ci:
     desc: Lint all three contracts + unit, runtime-conformance, and data-product contract tests
@@ -79,7 +79,7 @@ tasks:
   test:contract:data:ci:
     desc: Bring the runtime up, verify both data-product contracts, tear down
     cmds:
-      - docker compose up -d --wait operational-store events object-storage object-storage-init behaviour-service outbox-relay bento-streaming summariser
+      - docker compose up -d --wait operational-store events object-storage object-storage-init behaviour-service outbox-relay streaming summariser
       - defer: docker compose --profile test down -v
       - task: test:contract:data
 

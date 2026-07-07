@@ -4,6 +4,11 @@ The **mobile** channel consuming the one behaviour API. Same endpoints as web an
 agent: `POST /colours` to generate, `GET /colours/latest`, and the SSE feed at
 `GET /events/stream`.
 
+HTTP calls go through a **typed client** (`openapi-fetch` over `src/api/schema.ts`,
+generated from the committed OpenAPI contract with `task gen:client`) — the app
+cannot call an endpoint or read a field the contract doesn't define. SSE stays a
+raw `EventSource`; streams aren't part of the typed surface.
+
 ## In the demo (compose)
 
 `docker-compose.yml` builds a **web export** of this Expo app and serves it static

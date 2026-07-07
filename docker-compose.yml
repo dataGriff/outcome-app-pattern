@@ -17,6 +17,7 @@ services:
       pip install pyyaml jsonschema nats-py requests asyncpg schemathesis &&
       python3 domain/api/tests/integration/test_event_contract.py &&
       python3 domain/api/tests/integration/test_outbox.py &&
+      python3 domain/api/tests/integration/test_spec_drift.py &&
       schemathesis run domain/contracts/api/behaviour-service.openapi.yaml --url http://behaviour-service:8000 --exclude-path /events/stream"
 
   behaviour-service:
@@ -83,7 +84,7 @@ services:
     command: ["-js"]
 
   object-storage:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:3.97
     container_name: object-storage
     ports:
       - "8333:8333"   # S3 API
@@ -96,7 +97,7 @@ services:
     restart: unless-stopped
 
   object-storage-init:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:3.97
     container_name: object-storage-init
     depends_on:
       - object-storage
@@ -107,9 +108,9 @@ services:
       '
     restart: "no"
 
-  bento-streaming:
-    image: ghcr.io/warpstreamlabs/bento:latest
-    container_name: bento-streaming
+  streaming:
+    image: ghcr.io/warpstreamlabs/bento:1.9.1
+    container_name: streaming
     depends_on:
       - events
       - object-storage
@@ -175,6 +176,8 @@ services:
     container_name: web-frontend
     depends_on:
       - behaviour-service
+    environment:
+      DOMAIN_API_URL: http://behaviour-service:8000
     ports:
       - "5001:5000"   # host 5000 is often taken by macOS AirPlay Receiver
     restart: unless-stopped
