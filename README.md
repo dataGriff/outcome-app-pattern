@@ -9,36 +9,37 @@ the **pattern** in focus, not the feature.
 
 ## The pattern
 
+```mermaid
+flowchart TB
+  user([POST /colours]) --> api
+  subgraph domain["domain/ — the source-aligned core"]
+    api["Behaviour API<br/>FastAPI"]
+    store[("Postgres<br/>colours + outbox")]
+    relay["Relay<br/>asyncpg loop"]
+    api -->|one transaction| store --> relay
+  end
+  subgraph platform["platform/ — infrastructure + analytics"]
+    events{{"NATS · JetStream"}}
+    streaming["Streaming<br/>bento"]
+    raw[("SeaweedFS<br/>colour-operational · JSONL")]
+    summariser["Summariser<br/>pandas"]
+    curated[("SeaweedFS<br/>colour-performance · Parquet")]
+    viz["Visualisation<br/>Streamlit"]
+    events --> streaming --> raw --> summariser --> curated --> viz
+  end
+  subgraph experiences["experiences/ — one API, many channels"]
+    web["web · Flask"]
+    mobile["mobile · Expo/RN"]
+    agent["agent · MCP server"]
+  end
+  relay -->|colour.generated| events
+  events -. SSE bridge .-> api
+  web & mobile & agent -->|read the one API| api
+  api -. live SSE .-> experiences
 ```
-                              domain/  (the source-aligned core)
-        ┌──────────────────────────────────────────────────────────────────┐
-        │  api/        FastAPI behaviour service                            │
-        │  contracts/  OpenAPI (HTTP) + AsyncAPI (events) + data contracts  │
-        │  events/     event payload schema                                 │
-        │  relay/      outbox relay                                         │
-        │                                                                  │
-        │   POST /colours ─┐                                               │
-        │                  ▼   one transaction                            │
-        │            ┌───────────────┐   outbox rows   ┌─────────┐        │
-        │            │  Postgres     │────────────────▶│  relay  │──┐     │
-        │            │  colours+outbox│  (operational)  └─────────┘  │     │
-        │            └───────────────┘                              │     │
-        └──────────────────────────────────────────────────────────┼─────┘
-                     ▲ HTTP reads / SSE                              ▼ colour.generated
-                     │                                          ┌────────┐
-   experiences/      │                                          │  NATS  │
- ┌───────────┬───────┴────┐                                     └───┬────┘
- │  web      │  mobile    │◀──── SSE bridge (API) ◀──────────────────┤
- │  (Flask)  │  (Expo/RN) │                                          │
- │  agent (MCP server)    │                            platform/     ▼
- └───────────┴────────────┘                     ┌──────────────────────────────────┐
-   consume the one API                          │ streaming/  bento: NATS → storage │
-                                                │ storage/    SeaweedFS (S3)        │
-                                                │   colour-operational/  (raw JSONL)│
-                                                │   colour-performance/  (Parquet)  │
-                                                │ analytics/  summariser + Streamlit│
-                                                └──────────────────────────────────┘
-```
+
+The logical pattern and the same diagram for other platforms live in
+[docs/architecture](docs/architecture/index.md).
 
 - **`domain/`** — the one owner of behaviour. `POST /colours` writes the operational row and a
   transactional **outbox** row in one transaction; the **relay** ships the outbox to NATS. All

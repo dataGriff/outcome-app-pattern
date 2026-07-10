@@ -6,35 +6,70 @@ contract instead of reimplementing logic.
 
 ## The pattern
 
+The logical shape, independent of any platform — the same diagram appears in every port of this
+pattern (only the [implementation](#this-implementation) labels change):
+
+```mermaid
+flowchart TB
+  user([POST /colours]) --> api
+  subgraph domain["domain/ — the source-aligned core"]
+    api[Behaviour API]
+    store[("Operational store<br/>+ outbox")]
+    relay[Relay]
+    api -->|one transaction| store --> relay
+  end
+  subgraph platform["platform/ — infrastructure + analytics"]
+    events{{Event broker}}
+    streaming[Streaming]
+    raw[("Object storage<br/>colour-operational · raw")]
+    summariser[Summariser]
+    curated[("Object storage<br/>colour-performance · curated")]
+    viz[Visualisation]
+    events --> streaming --> raw --> summariser --> curated --> viz
+  end
+  subgraph experiences["experiences/ — one API, many channels"]
+    web[web]
+    mobile[mobile]
+    agent[agent]
+  end
+  relay -->|colour.generated| events
+  events -. SSE bridge .-> api
+  web & mobile & agent -->|read the one API| api
+  api -. live SSE .-> experiences
 ```
-                              domain/  (the source-aligned core)
-        ┌──────────────────────────────────────────────────────────────────┐
-        │  api/        FastAPI behaviour service                            │
-        │  contracts/  OpenAPI (HTTP) + AsyncAPI (events) + data contracts  │
-        │  events/     event payload schema                                 │
-        │  relay/      outbox relay                                         │
-        │                                                                  │
-        │   POST /colours ─┐                                               │
-        │                  ▼   one transaction                            │
-        │            ┌───────────────┐   outbox rows   ┌─────────┐        │
-        │            │  Postgres     │────────────────▶│  relay  │──┐     │
-        │            │  colours+outbox│  (operational)  └─────────┘  │     │
-        │            └───────────────┘                              │     │
-        └──────────────────────────────────────────────────────────┼─────┘
-                     ▲ HTTP reads / SSE                              ▼ colour.generated
-                     │                                          ┌────────┐
-   experiences/      │                                          │  NATS  │
- ┌───────────┬───────┴────┐                                     └───┬────┘
- │  web      │  mobile    │◀──── SSE bridge (API) ◀──────────────────┤
- │  (Flask)  │  (Expo/RN) │                                          │
- │  agent (MCP server)    │                            platform/     ▼
- └───────────┴────────────┘                     ┌──────────────────────────────────┐
-   consume the one API                          │ streaming/  bento: NATS → storage │
-                                                │ storage/    SeaweedFS (S3)        │
-                                                │   colour-operational/  (raw JSONL)│
-                                                │   colour-performance/  (Parquet)  │
-                                                │ analytics/  summariser + Streamlit│
-                                                └──────────────────────────────────┘
+
+## This implementation
+
+The same pattern, realised with this repo's stack — identical topology, concrete tech in each
+box (FastAPI, Postgres, NATS, SeaweedFS, …):
+
+```mermaid
+flowchart TB
+  user([POST /colours]) --> api
+  subgraph domain["domain/ — the source-aligned core"]
+    api["Behaviour API<br/>FastAPI"]
+    store[("Postgres<br/>colours + outbox")]
+    relay["Relay<br/>asyncpg loop"]
+    api -->|one transaction| store --> relay
+  end
+  subgraph platform["platform/ — infrastructure + analytics"]
+    events{{"NATS · JetStream"}}
+    streaming["Streaming<br/>bento"]
+    raw[("SeaweedFS<br/>colour-operational · JSONL")]
+    summariser["Summariser<br/>pandas"]
+    curated[("SeaweedFS<br/>colour-performance · Parquet")]
+    viz["Visualisation<br/>Streamlit"]
+    events --> streaming --> raw --> summariser --> curated --> viz
+  end
+  subgraph experiences["experiences/ — one API, many channels"]
+    web["web · Flask"]
+    mobile["mobile · Expo/RN"]
+    agent["agent · MCP server"]
+  end
+  relay -->|colour.generated| events
+  events -. SSE bridge .-> api
+  web & mobile & agent -->|read the one API| api
+  api -. live SSE .-> experiences
 ```
 
 ## The three zones
