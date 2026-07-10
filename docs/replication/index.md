@@ -91,6 +91,15 @@ What a platform swap *does* force you to decide (roles → serverless primitives
 | events | NATS | Queue | Queues are **single-consumer**, unlike a NATS subject. So the relay **fans out** itself: enqueue for the data-product consumer *and* best-effort broadcast to the SSE holder. The AsyncAPI still documents one logical channel. |
 | SSE bridge | in-API subscriber | TransformStream DO | A DO holds the live connections; the relay broadcasts to it. DO wall-clock is the tightest free-tier budget. |
 
+The **platform zone also repackages**. This repo runs one service per container — `streaming/`
+(bento), `storage/` (SeaweedFS + the operational-store schema), `analytics/summariser`,
+`analytics/visualisation` (Streamlit). A serverless port collapses the streaming consumer, the
+cron summariser, the products read API, and the static visualisation into a **single deployable**
+(one Worker sharing the object-storage binding), and **drops `storage/` entirely** — managed
+object storage has nothing to run, and the operational-store schema moves to the managed DB's
+migrations under `domain/`. Same roles, fewer moving parts; expect the platform zone's file tree
+to differ even where the roles don't.
+
 Weaker spots to compensate for, not ignore:
 
 - **Spec-drift test** — when the served spec *is* the committed spec by construction (no
