@@ -16,7 +16,7 @@ and exactly what to swap for your domain.
 ## Order of work
 
 Contract-first, in this order (the same order used to build this repo — see
-`.github/instructions/development.instructions.md`):
+[the development guide](../development/index.md)):
 
 1. **Contracts** — author the OpenAPI spec, the AsyncAPI spec, and one data contract per
    data product *before* implementation. Lint them (`task lint:all`).
@@ -115,5 +115,5 @@ Infrequent Access via a lifecycle rule) is a separate, paid production lever.
 
 ## Before production
 
-This is a local, single-node demo by design. See [productionising.md](productionising.md)
+This is a local, single-node demo by design. See [productionising](../productionising/index.md)
 for the explicit list of what to add before running the pattern in production.
