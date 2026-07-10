@@ -26,7 +26,10 @@ Contract-first, in this order (the same order used to build this repo — see
    against the contracts: Schemathesis conformance, the spec-drift test, and the event
    contract test.
 4. **Data products** — streaming pipeline for the raw product, batch summariser for the
-   curated product. Verify with `datacontract test` against real objects.
+   curated product. Verify with `datacontract test` against real objects. Treat the raw
+   product as the durable system of record: partition it by day and make the summariser
+   incremental (see "Porting to a different platform" below) rather than recomputing the
+   whole history each run.
 5. **Experiences** — one channel at a time, each consuming the API (typed client generated
    from the committed OpenAPI spec: `task gen:client`).
 6. **CI** — everything above runs through one `task ci`, so agents, developers, and CI
@@ -70,6 +73,45 @@ The transactional outbox + relay, the SSE bridge, the contract test harness (Sch
 spec-drift, event contract, `datacontract test`), the compose healthcheck/`--wait` setup,
 the Taskfile shape, and the CI workflow. These carry the pattern; they don't know about
 colours beyond configuration.
+
+## Porting to a different platform (a Cloudflare dry-run)
+
+The pattern is not tied to this repo's stack. It was ported wholesale to
+**Cloudflare's free plan** in TypeScript ([outcome-app-pattern-cloudflare](https://github.com/dataGriff/outcome-app-pattern-cloudflare))
+— a useful test of what is pattern and what is implementation. The verdict: **the
+structure carried over unchanged** — the three zones, the contract-first *order of work*,
+and the naming rules all held. Only the implementations behind the role names were swapped.
+
+What a platform swap *does* force you to decide (roles → serverless primitives):
+
+| Role | This repo | Cloudflare | Why it changes |
+| --- | --- | --- | --- |
+| operational-store | Postgres | D1 (SQLite) | `batch()` is the atomic outbox txn. D1 can't share a DB clock across statements, so the **app supplies the one shared timestamp** for the colour row + outbox row. |
+| relay | asyncpg loop | Durable Object with **alarms** | No always-on process. Poke on write + self-rearming alarm backstop + prune in the alarm. Same relay.py semantics (batch, mark-after-publish). |
+| events | NATS | Queue | Queues are **single-consumer**, unlike a NATS subject. So the relay **fans out** itself: enqueue for the data-product consumer *and* best-effort broadcast to the SSE holder. The AsyncAPI still documents one logical channel. |
+| SSE bridge | in-API subscriber | TransformStream DO | A DO holds the live connections; the relay broadcasts to it. DO wall-clock is the tightest free-tier budget. |
+
+Weaker spots to compensate for, not ignore:
+
+- **Spec-drift test** — when the served spec *is* the committed spec by construction (no
+  framework introspection like FastAPI's), the drift test is weaker. Compensate with a
+  route-registry ⇄ spec comparison + spec-driven behavioural probes, keeping Schemathesis.
+- **Agent SDK version skew** — the MCP SDK (zod v3 types) against an agent runtime pinned to
+  zod v4 caused an infinite-generic-instantiation type error; resolved by importing the v3
+  surface and casting the tool registrar to a concrete type. Expect peer-version friction
+  when two SDKs disagree on a shared dependency.
+- **Local dev ergonomics** — one dev process per worker (distinct ports *and* inspector
+  ports); a single multi-config dev binds only one HTTP port. The local dev registry does
+  carry both service bindings and cross-process queue delivery.
+
+One improvement the dry-run fed **back into this pattern** (platform-agnostic, see the
+"Data products" step): the naive summariser recomputes from the whole raw history every run.
+That doesn't scale, and the raw operational log is meant to be the **durable system of
+record**. Treat it as one: date-partition it (`dt=YYYY-MM-DD/`), keep it immutably, and make
+the summariser **incremental** — recompute only an open window, seal each closed day once
+(write its curated partition, compact its raw fragments), and advance a **watermark** so
+sealed days are never re-read. Cold-tiering the sealed archive to cheaper storage (e.g. R2
+Infrequent Access via a lifecycle rule) is a separate, paid production lever.
 
 ## Before production
 
