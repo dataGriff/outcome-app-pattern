@@ -34,7 +34,13 @@
       const conn = document.getElementById('conn');
 
       // POST goes through the same-origin Flask proxy (avoids CORS on writes).
+      // Guard against double-clicks: a second click while a POST is in flight
+      // would generate a second, distinct colour event. One click, one event.
+      let pending = false;
       btn.addEventListener('click', async () => {
+        if (pending) return;
+        pending = true;
+        btn.disabled = true;
         res.textContent = '⏳ generating...';
         try {
           const r = await fetch('/api/colours', { method: 'POST' });
@@ -43,6 +49,9 @@
           res.textContent = j.colour + ' @ ' + (j.timestamp || '');
         } catch (e) {
           res.textContent = 'error';
+        } finally {
+          pending = false;
+          btn.disabled = false;
         }
       });
 
